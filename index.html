@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Mirror Fall</title>
+
+<!-- Web App / iOS Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Mirror Fall" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<!-- Encourage landscape by default (CSS handles rotate prompt) -->
+
+<style>
+  :root{
+    --bg:#070709;
+    --panel:#0d0d10;
+    --accent:#ff6f61;
+    --ghost:#bdbdbd;
+    --mirror-tint: rgba(90, 110, 255, 0.06);
+    --ui-bg: rgba(0,0,0,0.35);
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    background:linear-gradient(180deg,#030303 0%, #0b0b0b 100%);
+    color:#e9e9e9;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+    -webkit-user-select:none;
+    overflow:hidden;
+  }
+  #app{
+    display:flex;
+    height:100vh;
+    width:100vw;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+
+  /* Canvas halves (world + mirror) */
+  .half{
+    position:relative;
+    flex:1 1 50%;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  canvas{
+    width:100%;
+    height:100%;
+    display:block;
+    background:transparent;
+  }
+
+  /* Mirror tint and thin separation */
+  #mirror{
+    background:linear-gradient(0deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
+    box-shadow: inset -200px 0 200px rgba(0,0,0,0.35);
+    mix-blend-mode:normal;
+    border-left:2px solid rgba(255,255,255,0.02);
+  }
+  #mirror::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg, transparent 0%, var(--mirror-tint) 60%);
+    pointer-events:none;
+  }
+
+  /* HUD */
+  .hud{
+    position:absolute;
+    left:12px;
+    top:12px;
+    background:var(--ui-bg);
+    padding:8px 10px;
+    border-radius:10px;
+    font-size:13px;
+    backdrop-filter: blur(4px);
+  }
+  .hud.right{ right:12px; left:auto; text-align:right; }
+
+  /* bottom controls for touch */
+  #touch-controls{
+    position:absolute;
+    bottom:18px;
+    left:18px;
+    right:18px;
+    pointer-events:none;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .stick{
+    width:120px;
+    height:120px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+    touch-action:none;
+    box-shadow:inset 0 0 18px rgba(0,0,0,0.6);
+  }
+  .stick .nub{
+    width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,0.06);
+    transform:translate(0,0);
+  }
+  .buttons{
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .btn{
+    width:64px;height:64px;border-radius:14px;background:var(--panel);display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:18px;color:var(--ghost);box-shadow:0 6px 18px rgba(0,0,0,0.6);
+  }
+
+  /* Top center overlay */
+  #title{
+    position:absolute;
+    left:50%;
+    top:12px;
+    transform:translateX(-50%);
+    font-weight:700;
+    letter-spacing:4px;
+    font-size:14px;
+    background:linear-gradient(to right, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    padding:8px 16px;border-radius:8px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Pause overlay */
+  #overlay{
+    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.6));
+    z-index:30;
+    pointer-events:auto;
+    text-align:center;
+  }
+  #overlay.show{ display:flex; }
+  #overlay .box{ background:rgba(10,10,10,0.9); padding:28px;border-radius:12px;max-width:560px; }
+  button.control{
+    margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent);border:none;color:white;font-weight:700;
+  }
+
+  /* rotate device prompt (shown when portrait on mobile) */
+  #rotate{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60;
+    background:linear-gradient(0deg, rgba(0,0,0,0.85), rgba(0,0,0,0.9));
+    color:#ddd;padding:24px;text-align:center;
+  }
+  #rotate.show{ display:flex; }
+
+  /* small accessibility tweaks */
+  .visually-hidden{ position:absolute!important; width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0; }
+
+  @media (orientation:portrait){
+    #rotate{ display:flex; }
+  }
+
+  /* tiny flicker for horror */
+  @keyframes flicker {
+    0%{ opacity:1; }
+    50%{ opacity:0.97; }
+    100%{ opacity:1; }
+  }
+  .flicker{ animation: flicker 3s infinite; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="half" id="world">
+    <canvas id="cWorld" width="1280" height="720" aria-label="Play area"></canvas>
+    <div class="hud left" id="hudLeft">
+      <div id="score">Score: 0</div>
+      <div id="wave">Wave: 1</div>
+      <div id="best">Best: 0</div>
+    </div>
+    <div class="hud right" style="top:auto;bottom:12px;" id="hudLeftBottom">
+      <div id="hp">HP: 10</div>
+      <div id="timeAlive">Time: 0s</div>
+    </div>
+  </div>
+
+  <div class="half" id="mirror" aria-hidden="false">
+    <canvas id="cMirror" width="1280" height="720" aria-label="Mirror area"></canvas>
+    <div class="hud left" style="top:12px;left:12px;">
+      Mirror
+    </div>
+  </div>
+
+  <div id="title" class="flicker">M I R R O R — S T I C K</div>
+
+  <!-- touch controls (only show on touch devices) -->
+  <div id="touch-controls" class="visually-hidden" aria-hidden="true">
+    <div class="stick" id="leftStick" title="Move">
+      <div class="nub" id="nub"></div>
+    </div>
+    <div class="buttons" id="rightButtons">
+      <div class="btn" id="btnA">A</div>
+      <div class="btn" id="btnB">B</div>
+    </div>
+  </div>
+
+  <div id="overlay" role="dialog" aria-modal="true">
+    <div class="box">
+      <h2 id="overlayTitle">Paused</h2>
+      <p id="overlayText">Tip: The right side reflects your actions in reverse. Use the mirror to outsmart mirror enemies.</p>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
+        <button class="control" id="resumeBtn">Resume</button>
+        <button class="control" id="restartBtn">Restart</button>
+      </div>
+      <div style="margin-top:10px;font-size:13px;color:#bbb;">Controls: Arrows/WASD, Space=Attack, Gamepad D-pad + A/B</div>
+    </div>
+  </div>
+
+  <div id="rotate" aria-hidden="true">
+    <div>
+      <h2>Please rotate your device</h2>
+      <p>Mirror Stick is best played in <strong>landscape</strong>. Rotate your phone or tablet to continue.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  Mirror Stick — single-file game
+  - Left canvas: real world
+  - Right canvas: mirrored world (horizontal mirror)
+  - Player moves in left; mirror obeys mirrored transforms.
+  - Touch/gamepad/keyboard input unified into an input state.
+  - Simple enemies that chase player; mirror enemies chase mirror player.
+  - Score/waves/difficulty; persistent best score via localStorage.
+  - Basic WebAudio ambient + attack sounds.
+*/
+
+/* ---------- Utility & Setup ---------- */
+const $ = s => document.querySelector(s);
+const cW = document.getElementById('cWorld'), ctxW = cW.getContext('2d');
+const cM = document.getElementById('cMirror'), ctxM = cM.getContext('2d');
+const hudScore = $('#score'), hudWave = $('#wave'), hudBest = $('#best'), hudHP = $('#hp'), hudTime = $('#timeAlive');
+const overlay = $('#overlay'), resumeBtn = $('#resumeBtn'), restartBtn = $('#restartBtn');
+const touchControls = $('#touch-controls'), leftStick = $('#leftStick'), nub = $('#nub'), rightButtons = $('#rightButtons');
+const btnA = $('#btnA'), btnB = $('#btnB');
+const rotatePrompt = $('#rotate');
+
+function fitCanvas() {
+  // maintain internal resolution for deterministic gameplay
+  // canvases styled to fill halves
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  cW.width = Math.max(640, Math.round(w/2));
+  cW.height = Math.max(360, Math.round(h));
+  cM.width = cW.width;
+  cM.height = cW.height;
+}
+fitCanvas();
+window.addEventListener('resize', fitCanvas);
+
+/* ---------- Input State ---------- */
+const input = {
+  left:0, right:0, up:0, down:0, attack:0, alt:0, pause:0
+};
+// keyboard
+const keyMap = {
+  'ArrowLeft':'left','ArrowRight':'right','ArrowUp':'up','ArrowDown':'down',
+  'a':'left','d':'right','w':'up','s':'down',
+  ' ':'attack','Enter':'attack','Escape':'pause','p':'pause','k':'attack'
+};
+window.addEventListener('keydown', e=>{
+  const k = keyMap[e.key];
+  if(k) { input[k]=1; e.preventDefault(); }
+});
+window.addEventListener('keyup', e=>{
+  const k = keyMap[e.key];
+  if(k) { input[k]=0; e.preventDefault(); }
+});
+
+/* ---------- Game State ---------- */
+let game = {
+  running:true, paused:false, time:0, score:0, wave:1, best:0, hp:10,
+  lastSpawn:0, spawnInterval:2000, enemies:[], mirrorEnemies:[], player:null, mirrorPlayer:null
+};
+const STORAGE_KEY = 'mirror_stick_best_v1';
+game.best = parseInt(localStorage.getItem(STORAGE_KEY) || '0',10);
+
+/* ---------- Audio (tiny ambient + attack) ---------- */
+let audioCtx;
+function ensureAudio(){
+  if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+}
+function ambientLoop(){
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type='sine';
+  o.frequency.value = 55 + Math.random()*8;
+  g.gain.value = 0.0025;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  setTimeout(()=>{ g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+2); o.stop(audioCtx.currentTime+2); }, 1200+Math.random()*2000);
+}
+function playAttack(){
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type='square';
+  o.frequency.value = 400;
+  g.gain.value = 0.02;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.15);
+  setTimeout(()=>o.stop(), 200);
+}
+setInterval(ambientLoop, 2200);
+
+/* ---------- Entities ---------- */
+function makePlayer(x,y,color='#fff'){
+  return { x,y, vx:0, vy:0, r:12, hp:10, color};
+}
+game.player = makePlayer(200,  cW.height/2, '#eaeaea');
+game.mirrorPlayer = makePlayer(cW.width - 200, cW.height/2, '#bdbdbd');
+
+/* ---------- Enemies ---------- */
+function spawnEnemy(mirror=false){
+  const side = Math.random() < 0.5 ? 'left' : 'right';
+  const y = Math.random()*(cW.height - 80) + 40;
+  const x = side === 'left' ? -30 : cW.width + 30;
+  const baseSpeed = 0.4 + 0.05 * game.wave + Math.random()*0.6;
+  const e = { x,y, r:10 + Math.random()*8, vx:0, vy:0, speed: baseSpeed, mirror };
+  if(mirror) game.mirrorEnemies.push(e); else game.enemies.push(e);
+}
+
+/* ---------- Game Loop & Logic ---------- */
+let lastTs = performance.now();
+function step(ts){
+  if(game.paused){ lastTs = ts; requestAnimationFrame(step); return; }
+  const dt = Math.min(40, ts - lastTs);
+  lastTs = ts;
+  game.time += dt;
+  // update input from gamepad
+  pollGamepads();
+  // movement input
+  const moveX = (input.right?1:0) - (input.left?1:0);
+  const moveY = (input.down?1:0) - (input.up?1:0);
+
+  // player physics
+  const speed = 0.35 + 0.02*game.wave;
+  game.player.vx += moveX*speed*dt*0.02;
+  game.player.vy += moveY*speed*dt*0.02;
+  // damping
+  game.player.vx *= 0.85;
+  game.player.vy *= 0.85;
+  game.player.x += game.player.vx * dt*0.06;
+  game.player.y += game.player.vy * dt*0.06;
+  // clamp
+  game.player.x = Math.max(20, Math.min(cW.width-20, game.player.x));
+  game.player.y = Math.max(20, Math.min(cW.height-20, game.player.y));
+
+  // mirror player is horizontally mirrored based on player.x
+  game.mirrorPlayer.x = cW.width - game.player.x;
+  game.mirrorPlayer.y = game.player.y;
+  // slight jitter for creepy feel
+  game.mirrorPlayer.x += Math.sin(game.time/400 + game.player.y)*0.4;
+
+  // spawn logic
+  if(ts - game.lastSpawn > game.spawnInterval){
+    game.lastSpawn = ts;
+    // spawn both normal and mirror enemies occasionally
+    spawnEnemy(Math.random() < 0.45);
+    if(Math.random() < 0.6) spawnEnemy(false);
+    // gradually reduce interval
+    game.spawnInterval = Math.max(600, 2000 - game.wave * 120);
+  }
+
+  // update enemies (normal)
+  for(let i = game.enemies.length-1; i>=0; --i){
+    const e = game.enemies[i];
+    const dx = game.player.x - e.x, dy = game.player.y - e.y;
+    const dist = Math.hypot(dx,dy) || 1;
+    e.vx = (dx/dist)*e.speed;
+    e.vy = (dy/dist)*e.speed;
+    e.x += e.vx*dt;
+    e.y += e.vy*dt;
+    // collision with player
+    if(dist < e.r + game.player.r){
+      // damage
+      game.hp -= 1;
+      game.enemies.splice(i,1);
+      if(game.hp <= 0) doGameOver();
+    }
+  }
+
+  // mirror enemies chase mirrorPlayer but with inverted controls sometimes
+  for(let i = game.mirrorEnemies.length-1; i>=0; --i){
+    const e = game.mirrorEnemies[i];
+    const dx = game.mirrorPlayer.x - e.x, dy = game.mirrorPlayer.y - e.y;
+    const dist = Math.hypot(dx,dy) || 1;
+    // mirror enemies sometimes move faster
+    e.vx = (dx/dist)*(e.speed + 0.2);
+    e.vy = (dy/dist)*(e.speed + 0.2);
+    e.x += e.vx*dt;
+    e.y += e.vy*dt;
+    // collision reduces score but not hp (mirror damage)
+    if(dist < e.r + game.mirrorPlayer.r){
+      game.score = Math.max(0, game.score - 5);
+      game.mirrorEnemies.splice(i,1);
+    }
+  }
+
+  // attack handling
+  if(input.attack){
+    // attack pulse: remove enemies in radius
+    const range = 64 + Math.random()*30;
+    playAttack();
+    for(let i = game.enemies.length-1;i>=0;--i){
+      const e = game.enemies[i];
+      if(Math.hypot(e.x - game.player.x, e.y - game.player.y) <= e.r + range){
+        game.enemies.splice(i,1);
+        game.score += 10;
+      }
+    }
+    for(let i = game.mirrorEnemies.length-1;i>=0;--i){
+      const e = game.mirrorEnemies[i];
+      if(Math.hypot(e.x - game.mirrorPlayer.x, e.y - game.mirrorPlayer.y) <= e.r + range){
+        game.mirrorEnemies.splice(i,1);
+        game.score += 8;
+      }
+    }
+    // simple attack cooldown
+    input.attack = 0;
+  }
+
+  // increase wave difficulty every 20 seconds
+  if(Math.floor(game.time/20000) + 1 > game.wave){
+    game.wave++;
+    game.score += 30 * game.wave;
+  }
+
+  // update HUD
+  hudScore.textContent = `Score: ${game.score}`;
+  hudWave.textContent = `Wave: ${game.wave}`;
+  hudBest.textContent = `Best: ${game.best}`;
+  hudHP.textContent = `HP: ${game.hp}`;
+  hudTime.textContent = `Time: ${Math.floor(game.time/1000)}s`;
+
+  // draw
+  render();
+
+  if(game.running) requestAnimationFrame(step);
+}
+
+function doGameOver(){
+  game.running=false;
+  overlay.classList.add('show');
+  $('#overlayTitle').textContent = 'Game Over';
+  $('#overlayText').textContent = `You lasted ${Math.floor(game.time/1000)}s. Score: ${game.score}.`;
+  if(game.score > game.best){
+    game.best = game.score;
+    localStorage.setItem(STORAGE_KEY, String(game.best));
+    $('#overlayText').textContent += ' New Best!';
+  }
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  // World canvas
+  ctxW.clearRect(0,0,cW.width,cW.height);
+  // ambient background noise
+  drawBackground(ctxW, cW.width, cW.height, false);
+  // draw player
+  drawPlayer(ctxW, game.player, false);
+  // draw enemies
+  game.enemies.forEach(e=> drawEnemy(ctxW,e,false));
+
+  // Mirror canvas (reflect horizontally)
+  ctxM.clearRect(0,0,cM.width,cM.height);
+  drawBackground(ctxM, cM.width, cM.height, true);
+  drawPlayer(ctxM, game.mirrorPlayer, true);
+  game.mirrorEnemies.forEach(e=> drawEnemy(ctxM,e,true));
+}
+
+function drawBackground(ctx,w,h,mirror){
+  // subtle grid lines and occasional flicker
+  ctx.save();
+  ctx.fillStyle = mirror ? '#05050a' : '#060606';
+  ctx.fillRect(0,0,w,h);
+  // scanline / grain
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#fff';
+  for(let y=0;y<h;y+=12){
+    ctx.fillRect(0,y,w,1);
+  }
+  ctx.globalAlpha = 1;
+  // faint vignette
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(0,0,0,0.0)');
+  g.addColorStop(1,'rgba(0,0,0,0.25)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,w,h);
+  ctx.restore();
+}
+
+function drawPlayer(ctx,p,mirror){
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // head
+  ctx.fillStyle = p.color;
+  ctx.beginPath();
+  ctx.arc(0, -10, 8, 0, Math.PI*2);
+  ctx.fill();
+  // body
+  ctx.strokeStyle = p.color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0,-2);
+  ctx.lineTo(0,16);
+  ctx.moveTo(0,6);
+  ctx.lineTo(-12, 2);
+  ctx.moveTo(0,6);
+  ctx.lineTo(12,2);
+  ctx.stroke();
+  ctx.restore();
+
+  // mirror ghost effect
+  if(mirror){
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.translate(wrap(p.x, 0, cM.width), p.y + Math.sin(Date.now()/300)*1.2);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-6,-6,12,12);
+    ctx.restore();
+  }
+}
+
+function drawEnemy(ctx,e,mirror){
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.fillStyle = mirror ? 'rgba(180,100,255,0.85)' : 'rgba(255,110,90,0.95)';
+  ctx.beginPath();
+  ctx.moveTo(0,-e.r);
+  for(let a=0;a<Math.PI*2;a+=Math.PI*0.8){
+    ctx.lineTo(Math.cos(a)*e.r, Math.sin(a)*e.r);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
+function wrap(v,mn,mx){ return ((v-mn)%(mx-mn)+(mx-mn))%(mx-mn)+mn; }
+
+/* ---------- Gamepad Support ---------- */
+let haveGamepad = false;
+function pollGamepads(){
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  for(const g of gps){
+    if(!g) continue;
+    haveGamepad = true;
+    // D-pad buttons 12-15 (up,right,down,left)
+    input.up = g.buttons[12] && g.buttons[12].pressed ? 1 : input.up;
+    input.right = g.buttons[15] && g.buttons[15].pressed ? 1 : input.right;
+    input.down = g.buttons[13] && g.buttons[13].pressed ? 1 : input.down;
+    input.left = g.buttons[14] && g.buttons[14].pressed ? 1 : input.left;
+    // face buttons: 0 = A, 1 = B, 2 = X, 3 = Y
+    if(g.buttons[0] && g.buttons[0].pressed) input.attack = 1;
+    if(g.buttons[1] && g.buttons[1].pressed) input.alt = 1;
+    // start / select
+    if(g.buttons[9] && g.buttons[9].pressed) togglePause();
+  }
+}
+
+/* ---------- Touch Controls ---------- */
+let touchActive = false;
+function setupTouch(){
+  if('ontouchstart' in window){
+    touchControls.classList.remove('visually-hidden');
+    touchControls.setAttribute('aria-hidden','false');
+    // left stick drag
+    let tracking = null;
+    function pt(e){ 
+      const t = e.touches ? e.touches[0] : e; return {x:t.clientX, y:t.clientY};
+    }
+    leftStick.addEventListener('touchstart', e=>{
+      e.preventDefault(); tracking = pt(e); touchActive=true;
+    }, {passive:false});
+    leftStick.addEventListener('touchmove', e=>{
+      if(!tracking) return;
+      const p = pt(e);
+      const dx = p.x - (leftStick.getBoundingClientRect().left + leftStick.clientWidth/2);
+      const dy = p.y - (leftStick.getBoundingClientRect().top + leftStick.clientHeight/2);
+      const max = 36;
+      const nx = Math.max(-max, Math.min(max, dx));
+      const ny = Math.max(-max, Math.min(max, dy));
+      nub.style.transform = `translate(${nx}px, ${ny}px)`;
+      // map to input
+      input.left = nx < -10 ? 1 : 0;
+      input.right = nx > 10 ? 1 : 0;
+      input.up = ny < -10 ? 1 : 0;
+      input.down = ny > 10 ? 1 : 0;
+    }, {passive:false});
+    leftStick.addEventListener('touchend', e=>{
+      tracking = null; touchActive=false;
+      nub.style.transform = 'translate(0,0)';
+      input.left=input.right=input.up=input.down=0;
+    });
+
+    // buttons
+    btnA.addEventListener('touchstart', e=>{ e.preventDefault(); input.attack=1; }, {passive:false});
+    btnA.addEventListener('touchend', e=>{ e.preventDefault(); input.attack=0; }, {passive:false});
+    btnB.addEventListener('touchstart', e=>{ e.preventDefault(); input.alt=1; }, {passive:false});
+    btnB.addEventListener('touchend', e=>{ e.preventDefault(); input.alt=0; }, {passive:false});
+  }
+}
+setupTouch();
+
+/* ---------- Pause / Overlay controls ---------- */
+function togglePause(){
+  game.paused = !game.paused;
+  overlay.classList.toggle('show', game.paused === true || !game.running);
+  if(!game.paused && !game.running){
+    // restarting from game over
+    restartGame();
+  }
+}
+window.addEventListener('blur', ()=>{ if(game.running){ game.paused=true; overlay.classList.add('show'); } });
+resumeBtn.addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+  if(!game.running) restartGame();
+  else game.paused=false;
+});
+restartBtn.addEventListener('click', restartGame);
+
+function restartGame(){
+  // reset state
+  game.enemies = [];
+  game.mirrorEnemies = [];
+  game.time = 0;
+  game.wave = 1;
+  game.spawnInterval = 2000;
+  game.lastSpawn = performance.now();
+  game.score = 0;
+  game.hp = 10;
+  game.player = makePlayer(200, cW.height/2, '#eaeaea');
+  game.mirrorPlayer = makePlayer(cW.width - 200, cW.height/2, '#bdbdbd');
+  game.running = true;
+  game.paused = false;
+  overlay.classList.remove('show');
+  lastTs = performance.now();
+  requestAnimationFrame(step);
+}
+
+/* ---------- Small UX helpers ---------- */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ game.paused=true; overlay.classList.add('show'); }
+});
+window.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' || e.key === 'p') togglePause();
+});
+
+/* ---------- Orientation prompt handling ---------- */
+function checkOrientation(){
+  const isPortrait = window.innerHeight > window.innerWidth;
+  if(isPortrait){
+    rotatePrompt.classList.add('show');
+  } else {
+    rotatePrompt.classList.remove('show');
+  }
+}
+window.addEventListener('resize', checkOrientation);
+checkOrientation();
+
+/* ---------- Init & start ---------- */
+// initial ambience on user gesture on some platforms
+document.body.addEventListener('click', function oneTap(){
+  try{ if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
+  catch(e){}
+  document.body.removeEventListener('click', oneTap);
+});
+// Gamepad connection events (optional)
+window.addEventListener('gamepadconnected', e=>{
+  console.log('Gamepad connected', e.gamepad.id);
+  // show hint briefly
+  const old = $('#title').textContent;
+  $('#title').textContent = 'Gamepad detected — Ready';
+  setTimeout(()=>$('#title').textContent = old, 2000);
+});
+
+// seed some enemies so it is interesting immediately
+for(let i=0;i<3;i++) spawnEnemy(i%2===0);
+
+// start game loop
+lastTs = performance.now();
+requestAnimationFrame(step);
+
+/* ---------- Helpful note: How to deploy on GitHub Pages ----------
+  1. Create a new GitHub repo (public/private).
+  2. Add this file as index.html in the repository root (or set the Pages folder to /docs and add there).
+  3. In repo Settings -> Pages, set source to 'main' branch and root (or 'gh-pages' branch); GitHub will publish at https://<username>.github.io/<repo> .
+  4. On iOS, open the URL in Safari, tap Share -> 'Add to Home Screen'. Because of the meta tags above, the game will launch standalone.
+  5. Optional: Add a 192x192 PNG named icon-192.png in the repo root to serve as the app icon.
+----------------------------------------------------------------- */
+</script>
+</body>
+</html>
