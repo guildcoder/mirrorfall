@@ -1,710 +1,570 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Mirror Fall</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>MirrorFall — Horror Runner</title>
 
 <!-- Web App / iOS Home Screen -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Mirror Fall" />
+<meta name="apple-mobile-web-app-title" content="MirrorFall" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="apple-touch-icon" href="icon-192.png" />
-<!-- Encourage landscape by default (CSS handles rotate prompt) -->
 
 <style>
   :root{
-    --bg:#070709;
-    --panel:#0d0d10;
-    --accent:#ff6f61;
-    --ghost:#bdbdbd;
-    --mirror-tint: rgba(90, 110, 255, 0.06);
-    --ui-bg: rgba(0,0,0,0.35);
+    --bg:#050507; --panel:rgba(0,0,0,0.45); --accent:#ff6f61; --ghost:#cfcfcf;
   }
-  html,body{
-    height:100%;
-    margin:0;
-    background:linear-gradient(180deg,#030303 0%, #0b0b0b 100%);
-    color:#e9e9e9;
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    -webkit-font-smoothing:antialiased;
-    -webkit-text-size-adjust:100%;
-    -webkit-user-select:none;
-    overflow:hidden;
-  }
-  #app{
-    display:flex;
-    height:100vh;
-    width:100vw;
-    align-items:stretch;
-    justify-content:stretch;
-  }
-
-  /* Canvas halves (world + mirror) */
-  .half{
-    position:relative;
-    flex:1 1 50%;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  canvas{
-    width:100%;
-    height:100%;
-    display:block;
-    background:transparent;
-  }
-
-  /* Mirror tint and thin separation */
-  #mirror{
-    background:linear-gradient(0deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
-    box-shadow: inset -200px 0 200px rgba(0,0,0,0.35);
-    mix-blend-mode:normal;
-    border-left:2px solid rgba(255,255,255,0.02);
-  }
-  #mirror::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(90deg, transparent 0%, var(--mirror-tint) 60%);
-    pointer-events:none;
-  }
-
-  /* HUD */
-  .hud{
-    position:absolute;
-    left:12px;
-    top:12px;
-    background:var(--ui-bg);
-    padding:8px 10px;
-    border-radius:10px;
-    font-size:13px;
-    backdrop-filter: blur(4px);
-  }
-  .hud.right{ right:12px; left:auto; text-align:right; }
-
-  /* bottom controls for touch */
-  #touch-controls{
-    position:absolute;
-    bottom:18px;
-    left:18px;
-    right:18px;
-    pointer-events:none;
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-  }
-  .stick{
-    width:120px;
-    height:120px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    pointer-events:auto;
-    touch-action:none;
-    box-shadow:inset 0 0 18px rgba(0,0,0,0.6);
-  }
-  .stick .nub{
-    width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,0.06);
-    transform:translate(0,0);
-  }
-  .buttons{
-    pointer-events:auto;
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-  .btn{
-    width:64px;height:64px;border-radius:14px;background:var(--panel);display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:18px;color:var(--ghost);box-shadow:0 6px 18px rgba(0,0,0,0.6);
-  }
-
-  /* Top center overlay */
-  #title{
-    position:absolute;
-    left:50%;
-    top:12px;
-    transform:translateX(-50%);
-    font-weight:700;
-    letter-spacing:4px;
-    font-size:14px;
-    background:linear-gradient(to right, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    padding:8px 16px;border-radius:8px;
-    backdrop-filter: blur(4px);
-  }
-
-  /* Pause overlay */
-  #overlay{
-    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-    background:linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.6));
-    z-index:30;
-    pointer-events:auto;
-    text-align:center;
-  }
+  html,body{ height:100%; margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial; background:#000; color:#eee; -webkit-text-size-adjust:100%; -webkit-user-select:none; overflow:hidden;}
+  #app{ display:flex; width:100vw; height:100vh; align-items:stretch; justify-content:stretch; }
+  .half{ flex:1 1 50%; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#020203; }
+  canvas{ width:100%; height:100%; display:block; background:transparent; }
+  #mirror{ border-left:2px solid rgba(255,255,255,0.03); background:linear-gradient(90deg, rgba(0,0,0,0.02), rgba(10,6,10,0.12)); }
+  #title{ position:absolute; top:12px; left:50%; transform:translateX(-50%); padding:8px 12px; background:var(--panel); border-radius:8px; font-weight:700; letter-spacing:3px; }
+  .hud{ position:absolute; top:12px; left:12px; background:var(--panel); padding:8px 10px; border-radius:8px; font-size:13px; }
+  .hud.right{ left:auto; right:12px; text-align:right; }
+  #overlay{ display:none; position:absolute; inset:0; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:40; }
   #overlay.show{ display:flex; }
-  #overlay .box{ background:rgba(10,10,10,0.9); padding:28px;border-radius:12px;max-width:560px; }
-  button.control{
-    margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent);border:none;color:white;font-weight:700;
-  }
-
-  /* rotate device prompt (shown when portrait on mobile) */
-  #rotate{
-    position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60;
-    background:linear-gradient(0deg, rgba(0,0,0,0.85), rgba(0,0,0,0.9));
-    color:#ddd;padding:24px;text-align:center;
-  }
-  #rotate.show{ display:flex; }
-
-  /* small accessibility tweaks */
+  .panel{ background:rgba(12,12,12,0.95); padding:18px; border-radius:10px; width:90%; max-width:560px; text-align:center; }
+  button.btn{ margin-top:10px; padding:10px 16px; border-radius:8px; background:var(--accent); color:#fff; border:0; font-weight:700; }
+  #rotate{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:80; text-align:center; color:#ddd;}
+  @media (orientation:portrait){ #rotate{ display:flex; } }
+  /* touch UI */
+  #touchUI{ position:absolute; bottom:14px; left:12px; right:12px; display:flex; justify-content:space-between; pointer-events:none; }
+  .touch-left, .touch-right{ pointer-events:auto; display:flex; gap:12px; align-items:center; }
+  .touch-btn{ width:64px; height:64px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; font-weight:700; color:#ddd; }
   .visually-hidden{ position:absolute!important; width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0; }
-
-  @media (orientation:portrait){
-    #rotate{ display:flex; }
-  }
-
-  /* tiny flicker for horror */
-  @keyframes flicker {
-    0%{ opacity:1; }
-    50%{ opacity:0.97; }
-    100%{ opacity:1; }
-  }
-  .flicker{ animation: flicker 3s infinite; }
 </style>
 </head>
 <body>
 <div id="app">
   <div class="half" id="world">
-    <canvas id="cWorld" width="1280" height="720" aria-label="Play area"></canvas>
-    <div class="hud left" id="hudLeft">
-      <div id="score">Score: 0</div>
-      <div id="wave">Wave: 1</div>
-      <div id="best">Best: 0</div>
-    </div>
-    <div class="hud right" style="top:auto;bottom:12px;" id="hudLeftBottom">
-      <div id="hp">HP: 10</div>
-      <div id="timeAlive">Time: 0s</div>
+    <canvas id="leftCanvas" width="1280" height="720" aria-label="Game world"></canvas>
+    <div id="title">M I R R O R F A L L</div>
+    <div class="hud" id="hudLeft">Score: <span id="score">0</span> · Wave: <span id="wave">1</span></div>
+    <div class="hud right" style="top:12px;right:12px;">HP: <span id="hp">3</span> · Light: <span id="light">100</span>%</div>
+
+    <div id="touchUI" class="visually-hidden" aria-hidden="true">
+      <div class="touch-left">
+        <div class="touch-btn" id="tapJump">JUMP</div>
+      </div>
+      <div class="touch-right">
+        <div class="touch-btn" id="tapSprint">SPRINT</div>
+        <div class="touch-btn" id="tapRepel">REPEL</div>
+      </div>
     </div>
   </div>
 
-  <div class="half" id="mirror" aria-hidden="false">
-    <canvas id="cMirror" width="1280" height="720" aria-label="Mirror area"></canvas>
-    <div class="hud left" style="top:12px;left:12px;">
-      Mirror
-    </div>
-  </div>
-
-  <div id="title" class="flicker">M I R R O R — S T I C K</div>
-
-  <!-- touch controls (only show on touch devices) -->
-  <div id="touch-controls" class="visually-hidden" aria-hidden="true">
-    <div class="stick" id="leftStick" title="Move">
-      <div class="nub" id="nub"></div>
-    </div>
-    <div class="buttons" id="rightButtons">
-      <div class="btn" id="btnA">A</div>
-      <div class="btn" id="btnB">B</div>
-    </div>
+  <div class="half" id="mirror">
+    <canvas id="rightCanvas" width="1280" height="720" aria-label="Mirror view"></canvas>
+    <div class="hud" style="top:12px;left:12px;">Mirror World</div>
   </div>
 
   <div id="overlay" role="dialog" aria-modal="true">
-    <div class="box">
-      <h2 id="overlayTitle">Paused</h2>
-      <p id="overlayText">Tip: The right side reflects your actions in reverse. Use the mirror to outsmart mirror enemies.</p>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
-        <button class="control" id="resumeBtn">Resume</button>
-        <button class="control" id="restartBtn">Restart</button>
+    <div class="panel" id="panelBox">
+      <h2 id="panelTitle">Paused</h2>
+      <p id="panelText">Survive the waves. When the Exit Gate appears, reach it to escape. Use Battery and Repel power-ups wisely.</p>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button class="btn" id="resume">Resume</button>
+        <button class="btn" id="restart">Restart</button>
       </div>
-      <div style="margin-top:10px;font-size:13px;color:#bbb;">Controls: Arrows/WASD, Space=Attack, Gamepad D-pad + A/B</div>
+      <p style="font-size:12px;margin-top:10px;color:#bbb;">Controls: ←/→ or A/D to move lanes, Space to jump, Hold to sprint. Gamepad D-pad + A to jump.</p>
     </div>
   </div>
 
-  <div id="rotate" aria-hidden="true">
-    <div>
-      <h2>Please rotate your device</h2>
-      <p>Mirror Stick is best played in <strong>landscape</strong>. Rotate your phone or tablet to continue.</p>
-    </div>
-  </div>
+  <div id="rotate"><div><h2>Please rotate to landscape</h2><p>MirrorFall plays best in landscape.</p></div></div>
 </div>
 
 <script>
-/*
-  Mirror Stick — single-file game
-  - Left canvas: real world
-  - Right canvas: mirrored world (horizontal mirror)
-  - Player moves in left; mirror obeys mirrored transforms.
-  - Touch/gamepad/keyboard input unified into an input state.
-  - Simple enemies that chase player; mirror enemies chase mirror player.
-  - Score/waves/difficulty; persistent best score via localStorage.
-  - Basic WebAudio ambient + attack sounds.
+/* MirrorFall — Single-file horror runner
+   - Side-scrolling runner (left canvas) inspired by stickman school run
+   - Mirror view (right canvas) shows mirror-self chasing; mirror spawns waves
+   - Flashlight cone ahead of player reveals obstacles; outside cone is dark
+   - Waves, exit gate, powerups (battery, speed, repel)
+   - Keyboard, gamepad, and touch controls
 */
 
-/* ---------- Utility & Setup ---------- */
-const $ = s => document.querySelector(s);
-const cW = document.getElementById('cWorld'), ctxW = cW.getContext('2d');
-const cM = document.getElementById('cMirror'), ctxM = cM.getContext('2d');
-const hudScore = $('#score'), hudWave = $('#wave'), hudBest = $('#best'), hudHP = $('#hp'), hudTime = $('#timeAlive');
-const overlay = $('#overlay'), resumeBtn = $('#resumeBtn'), restartBtn = $('#restartBtn');
-const touchControls = $('#touch-controls'), leftStick = $('#leftStick'), nub = $('#nub'), rightButtons = $('#rightButtons');
-const btnA = $('#btnA'), btnB = $('#btnB');
-const rotatePrompt = $('#rotate');
+const leftC = document.getElementById('leftCanvas'), L = leftC.getContext('2d');
+const rightC = document.getElementById('rightCanvas'), R = rightC.getContext('2d');
+const hudScore = document.getElementById('score'), hudWave = document.getElementById('wave');
+const hudHP = document.getElementById('hp'), hudLight = document.getElementById('light');
+const overlay = document.getElementById('overlay'), resumeBtn = document.getElementById('resume'), restartBtn = document.getElementById('restart');
+const tapJump = document.getElementById('tapJump'), tapSprint = document.getElementById('tapSprint'), tapRepel = document.getElementById('tapRepel');
+const rotate = document.getElementById('rotate');
 
-function fitCanvas() {
-  // maintain internal resolution for deterministic gameplay
-  // canvases styled to fill halves
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  cW.width = Math.max(640, Math.round(w/2));
-  cW.height = Math.max(360, Math.round(h));
-  cM.width = cW.width;
-  cM.height = cW.height;
+const STORAGE_KEY = 'mirrorfall_best_v1';
+let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+
+/* Resize logic */
+function fit(){
+  const w = window.innerWidth, h = window.innerHeight;
+  leftC.width = Math.max(640, Math.round(w/2));
+  leftC.height = Math.max(360, Math.round(h));
+  rightC.width = leftC.width;
+  rightC.height = leftC.height;
 }
-fitCanvas();
-window.addEventListener('resize', fitCanvas);
+fit(); window.addEventListener('resize', fit);
+function checkOrientation(){ if(window.innerHeight > window.innerWidth) rotate.classList.add('show'); else rotate.classList.remove('show'); }
+window.addEventListener('resize', checkOrientation); checkOrientation();
 
-/* ---------- Input State ---------- */
-const input = {
-  left:0, right:0, up:0, down:0, attack:0, alt:0, pause:0
-};
-// keyboard
-const keyMap = {
-  'ArrowLeft':'left','ArrowRight':'right','ArrowUp':'up','ArrowDown':'down',
-  'a':'left','d':'right','w':'up','s':'down',
-  ' ':'attack','Enter':'attack','Escape':'pause','p':'pause','k':'attack'
-};
-window.addEventListener('keydown', e=>{
-  const k = keyMap[e.key];
-  if(k) { input[k]=1; e.preventDefault(); }
-});
-window.addEventListener('keyup', e=>{
-  const k = keyMap[e.key];
-  if(k) { input[k]=0; e.preventDefault(); }
-});
+/* Input */
+const input = { left:0, right:0, jump:0, sprint:0, repel:0, pause:0 };
+const keyMap = { 'ArrowLeft':'left','a':'left','ArrowRight':'right','d':'right',' ': 'jump','w':'jump','W':'jump','Shift':'sprint','Enter':'repel','p':'pause','Escape':'pause' };
+window.addEventListener('keydown', e=>{ const k = keyMap[e.key]; if(k){ input[k]=1; e.preventDefault(); }});
+window.addEventListener('keyup', e=>{ const k = keyMap[e.key]; if(k){ input[k]=0; e.preventDefault(); }});
 
-/* ---------- Game State ---------- */
+/* Touch UI */
+if('ontouchstart' in window){
+  document.getElementById('touchUI').classList.remove('visually-hidden');
+  document.getElementById('touchUI').setAttribute('aria-hidden','false');
+  tapJump.addEventListener('touchstart', e=>{ e.preventDefault(); input.jump=1; }, {passive:false});
+  tapJump.addEventListener('touchend', e=>{ e.preventDefault(); input.jump=0; }, {passive:false});
+  tapSprint.addEventListener('touchstart', e=>{ e.preventDefault(); input.sprint=1; }, {passive:false});
+  tapSprint.addEventListener('touchend', e=>{ e.preventDefault(); input.sprint=0; }, {passive:false});
+  tapRepel.addEventListener('touchstart', e=>{ e.preventDefault(); input.repel=1; setTimeout(()=>input.repel=0,150); }, {passive:false});
+}
+
+/* Game state */
 let game = {
-  running:true, paused:false, time:0, score:0, wave:1, best:0, hp:10,
-  lastSpawn:0, spawnInterval:2000, enemies:[], mirrorEnemies:[], player:null, mirrorPlayer:null
+  running:true, paused:false, time:0, score:0, wave:1, hp:3, light:100,
+  player:null, mirror:null, obstacles:[], mirrorOb:[], powerups:[], exit:null, spawnTimer:0, waveTimer:0, waveDuration:20000
 };
-const STORAGE_KEY = 'mirror_stick_best_v1';
-game.best = parseInt(localStorage.getItem(STORAGE_KEY) || '0',10);
 
-/* ---------- Audio (tiny ambient + attack) ---------- */
+/* Player: lanes-style runner like school run */
+const lanes = [120, 220, 320]; // y positions relative to canvas
+function makePlayer(){
+  return {
+    x: 120, // relative x in screen units (camera moves right)
+    y: lanes[1],
+    lane:1,
+    vy:0,
+    grounded:true,
+    jumpForce:-10,
+    width:22, height:44,
+    vx:2.2, // base forward auto movement speed
+    sprintMult:1,
+    flashlightAngle:0,
+    light:100
+  };
+}
+game.player = makePlayer();
+game.mirror = { x: -200, y: game.player.y, speed:1.6, rage:0 };
+
+/* Audio tiny */
 let audioCtx;
-function ensureAudio(){
-  if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-}
-function ambientLoop(){
-  ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type='sine';
-  o.frequency.value = 55 + Math.random()*8;
-  g.gain.value = 0.0025;
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  setTimeout(()=>{ g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+2); o.stop(audioCtx.currentTime+2); }, 1200+Math.random()*2000);
-}
-function playAttack(){
-  ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type='square';
-  o.frequency.value = 400;
-  g.gain.value = 0.02;
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.15);
-  setTimeout(()=>o.stop(), 200);
-}
-setInterval(ambientLoop, 2200);
-
-/* ---------- Entities ---------- */
-function makePlayer(x,y,color='#fff'){
-  return { x,y, vx:0, vy:0, r:12, hp:10, color};
-}
-game.player = makePlayer(200,  cW.height/2, '#eaeaea');
-game.mirrorPlayer = makePlayer(cW.width - 200, cW.height/2, '#bdbdbd');
-
-/* ---------- Enemies ---------- */
-function spawnEnemy(mirror=false){
-  const side = Math.random() < 0.5 ? 'left' : 'right';
-  const y = Math.random()*(cW.height - 80) + 40;
-  const x = side === 'left' ? -30 : cW.width + 30;
-  const baseSpeed = 0.4 + 0.05 * game.wave + Math.random()*0.6;
-  const e = { x,y, r:10 + Math.random()*8, vx:0, vy:0, speed: baseSpeed, mirror };
-  if(mirror) game.mirrorEnemies.push(e); else game.enemies.push(e);
+function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function playBeep(freq=220,dur=0.12,vol=0.02){
+  try{
+    ensureAudio();
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    o.type='sine'; o.frequency.value=freq; g.gain.value=vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+dur); setTimeout(()=>o.stop(), dur*1000 + 30);
+  }catch(e){}
 }
 
-/* ---------- Game Loop & Logic ---------- */
-let lastTs = performance.now();
-function step(ts){
-  if(game.paused){ lastTs = ts; requestAnimationFrame(step); return; }
-  const dt = Math.min(40, ts - lastTs);
-  lastTs = ts;
-  game.time += dt;
-  // update input from gamepad
-  pollGamepads();
-  // movement input
-  const moveX = (input.right?1:0) - (input.left?1:0);
-  const moveY = (input.down?1:0) - (input.up?1:0);
-
-  // player physics
-  const speed = 0.35 + 0.02*game.wave;
-  game.player.vx += moveX*speed*dt*0.02;
-  game.player.vy += moveY*speed*dt*0.02;
-  // damping
-  game.player.vx *= 0.85;
-  game.player.vy *= 0.85;
-  game.player.x += game.player.vx * dt*0.06;
-  game.player.y += game.player.vy * dt*0.06;
-  // clamp
-  game.player.x = Math.max(20, Math.min(cW.width-20, game.player.x));
-  game.player.y = Math.max(20, Math.min(cW.height-20, game.player.y));
-
-  // mirror player is horizontally mirrored based on player.x
-  game.mirrorPlayer.x = cW.width - game.player.x;
-  game.mirrorPlayer.y = game.player.y;
-  // slight jitter for creepy feel
-  game.mirrorPlayer.x += Math.sin(game.time/400 + game.player.y)*0.4;
-
-  // spawn logic
-  if(ts - game.lastSpawn > game.spawnInterval){
-    game.lastSpawn = ts;
-    // spawn both normal and mirror enemies occasionally
-    spawnEnemy(Math.random() < 0.45);
-    if(Math.random() < 0.6) spawnEnemy(false);
-    // gradually reduce interval
-    game.spawnInterval = Math.max(600, 2000 - game.wave * 120);
-  }
-
-  // update enemies (normal)
-  for(let i = game.enemies.length-1; i>=0; --i){
-    const e = game.enemies[i];
-    const dx = game.player.x - e.x, dy = game.player.y - e.y;
-    const dist = Math.hypot(dx,dy) || 1;
-    e.vx = (dx/dist)*e.speed;
-    e.vy = (dy/dist)*e.speed;
-    e.x += e.vx*dt;
-    e.y += e.vy*dt;
-    // collision with player
-    if(dist < e.r + game.player.r){
-      // damage
-      game.hp -= 1;
-      game.enemies.splice(i,1);
-      if(game.hp <= 0) doGameOver();
-    }
-  }
-
-  // mirror enemies chase mirrorPlayer but with inverted controls sometimes
-  for(let i = game.mirrorEnemies.length-1; i>=0; --i){
-    const e = game.mirrorEnemies[i];
-    const dx = game.mirrorPlayer.x - e.x, dy = game.mirrorPlayer.y - e.y;
-    const dist = Math.hypot(dx,dy) || 1;
-    // mirror enemies sometimes move faster
-    e.vx = (dx/dist)*(e.speed + 0.2);
-    e.vy = (dy/dist)*(e.speed + 0.2);
-    e.x += e.vx*dt;
-    e.y += e.vy*dt;
-    // collision reduces score but not hp (mirror damage)
-    if(dist < e.r + game.mirrorPlayer.r){
-      game.score = Math.max(0, game.score - 5);
-      game.mirrorEnemies.splice(i,1);
-    }
-  }
-
-  // attack handling
-  if(input.attack){
-    // attack pulse: remove enemies in radius
-    const range = 64 + Math.random()*30;
-    playAttack();
-    for(let i = game.enemies.length-1;i>=0;--i){
-      const e = game.enemies[i];
-      if(Math.hypot(e.x - game.player.x, e.y - game.player.y) <= e.r + range){
-        game.enemies.splice(i,1);
-        game.score += 10;
-      }
-    }
-    for(let i = game.mirrorEnemies.length-1;i>=0;--i){
-      const e = game.mirrorEnemies[i];
-      if(Math.hypot(e.x - game.mirrorPlayer.x, e.y - game.mirrorPlayer.y) <= e.r + range){
-        game.mirrorEnemies.splice(i,1);
-        game.score += 8;
-      }
-    }
-    // simple attack cooldown
-    input.attack = 0;
-  }
-
-  // increase wave difficulty every 20 seconds
-  if(Math.floor(game.time/20000) + 1 > game.wave){
-    game.wave++;
-    game.score += 30 * game.wave;
-  }
-
-  // update HUD
-  hudScore.textContent = `Score: ${game.score}`;
-  hudWave.textContent = `Wave: ${game.wave}`;
-  hudBest.textContent = `Best: ${game.best}`;
-  hudHP.textContent = `HP: ${game.hp}`;
-  hudTime.textContent = `Time: ${Math.floor(game.time/1000)}s`;
-
-  // draw
-  render();
-
-  if(game.running) requestAnimationFrame(step);
+/* Spawn utilities */
+function spawnObstacle(){
+  // obstacle placed ahead at camera + plus offset
+  const x = cameraX + leftC.width + 60 + Math.random()*140;
+  const lane = Math.floor(Math.random()*3);
+  game.obstacles.push({x, lane, w:28 + Math.random()*16, h:18 + Math.random()*20 });
+}
+function spawnPowerup(){
+  const types = ['battery','boost','repel'];
+  const type = types[Math.floor(Math.random()*types.length)];
+  const x = cameraX + leftC.width + 120 + Math.random()*240;
+  const lane = Math.floor(Math.random()*3);
+  game.powerups.push({x, lane, type});
 }
 
-function doGameOver(){
-  game.running=false;
-  overlay.classList.add('show');
-  $('#overlayTitle').textContent = 'Game Over';
-  $('#overlayText').textContent = `You lasted ${Math.floor(game.time/1000)}s. Score: ${game.score}.`;
-  if(game.score > game.best){
-    game.best = game.score;
-    localStorage.setItem(STORAGE_KEY, String(game.best));
-    $('#overlayText').textContent += ' New Best!';
+/* Camera (side-scrolling) */
+let cameraX = 0;
+
+/* Wave & Exit logic */
+function newWave(){
+  game.wave++;
+  game.spawnTimer = 0;
+  // occasionally spawn mirror hazard burst
+  for(let i=0;i<2+Math.floor(game.wave/2);i++) spawnObstacle();
+  // sometimes spawn a powerup cluster
+  if(Math.random() < 0.6) spawnPowerup();
+}
+function maybeSpawnExit(){
+  // after enough waves, spawn exit gate ahead
+  if(game.wave >= 3 && !game.exit && Math.random() < 0.03){
+    game.exit = { x: cameraX + leftC.width + 360, lane:1, w:80, h:110 };
   }
 }
 
-/* ---------- Rendering ---------- */
-function render(){
-  // World canvas
-  ctxW.clearRect(0,0,cW.width,cW.height);
-  // ambient background noise
-  drawBackground(ctxW, cW.width, cW.height, false);
-  // draw player
-  drawPlayer(ctxW, game.player, false);
-  // draw enemies
-  game.enemies.forEach(e=> drawEnemy(ctxW,e,false));
-
-  // Mirror canvas (reflect horizontally)
-  ctxM.clearRect(0,0,cM.width,cM.height);
-  drawBackground(ctxM, cM.width, cM.height, true);
-  drawPlayer(ctxM, game.mirrorPlayer, true);
-  game.mirrorEnemies.forEach(e=> drawEnemy(ctxM,e,true));
-}
-
-function drawBackground(ctx,w,h,mirror){
-  // subtle grid lines and occasional flicker
-  ctx.save();
-  ctx.fillStyle = mirror ? '#05050a' : '#060606';
-  ctx.fillRect(0,0,w,h);
-  // scanline / grain
-  ctx.globalAlpha = 0.04;
-  ctx.fillStyle = '#fff';
-  for(let y=0;y<h;y+=12){
-    ctx.fillRect(0,y,w,1);
-  }
-  ctx.globalAlpha = 1;
-  // faint vignette
-  const g = ctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'rgba(0,0,0,0.0)');
-  g.addColorStop(1,'rgba(0,0,0,0.25)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,w,h);
-  ctx.restore();
-}
-
-function drawPlayer(ctx,p,mirror){
-  ctx.save();
-  ctx.translate(p.x, p.y);
-  // head
-  ctx.fillStyle = p.color;
-  ctx.beginPath();
-  ctx.arc(0, -10, 8, 0, Math.PI*2);
-  ctx.fill();
-  // body
-  ctx.strokeStyle = p.color;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(0,-2);
-  ctx.lineTo(0,16);
-  ctx.moveTo(0,6);
-  ctx.lineTo(-12, 2);
-  ctx.moveTo(0,6);
-  ctx.lineTo(12,2);
-  ctx.stroke();
-  ctx.restore();
-
-  // mirror ghost effect
-  if(mirror){
-    ctx.save();
-    ctx.globalAlpha = 0.08;
-    ctx.translate(wrap(p.x, 0, cM.width), p.y + Math.sin(Date.now()/300)*1.2);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(-6,-6,12,12);
-    ctx.restore();
-  }
-}
-
-function drawEnemy(ctx,e,mirror){
-  ctx.save();
-  ctx.translate(e.x, e.y);
-  ctx.fillStyle = mirror ? 'rgba(180,100,255,0.85)' : 'rgba(255,110,90,0.95)';
-  ctx.beginPath();
-  ctx.moveTo(0,-e.r);
-  for(let a=0;a<Math.PI*2;a+=Math.PI*0.8){
-    ctx.lineTo(Math.cos(a)*e.r, Math.sin(a)*e.r);
-  }
-  ctx.fill();
-  ctx.restore();
-}
-
-function wrap(v,mn,mx){ return ((v-mn)%(mx-mn)+(mx-mn))%(mx-mn)+mn; }
-
-/* ---------- Gamepad Support ---------- */
-let haveGamepad = false;
+/* Input: gamepad */
 function pollGamepads(){
   const gps = navigator.getGamepads ? navigator.getGamepads() : [];
   for(const g of gps){
     if(!g) continue;
-    haveGamepad = true;
-    // D-pad buttons 12-15 (up,right,down,left)
-    input.up = g.buttons[12] && g.buttons[12].pressed ? 1 : input.up;
-    input.right = g.buttons[15] && g.buttons[15].pressed ? 1 : input.right;
-    input.down = g.buttons[13] && g.buttons[13].pressed ? 1 : input.down;
-    input.left = g.buttons[14] && g.buttons[14].pressed ? 1 : input.left;
-    // face buttons: 0 = A, 1 = B, 2 = X, 3 = Y
-    if(g.buttons[0] && g.buttons[0].pressed) input.attack = 1;
-    if(g.buttons[1] && g.buttons[1].pressed) input.alt = 1;
-    // start / select
-    if(g.buttons[9] && g.buttons[9].pressed) togglePause();
-  }
-}
-
-/* ---------- Touch Controls ---------- */
-let touchActive = false;
-function setupTouch(){
-  if('ontouchstart' in window){
-    touchControls.classList.remove('visually-hidden');
-    touchControls.setAttribute('aria-hidden','false');
-    // left stick drag
-    let tracking = null;
-    function pt(e){ 
-      const t = e.touches ? e.touches[0] : e; return {x:t.clientX, y:t.clientY};
+    // D-pad
+    input.left = (g.buttons[14] && g.buttons[14].pressed) ? 1 : input.left;
+    input.right = (g.buttons[15] && g.buttons[15].pressed) ? 1 : input.right;
+    if(g.buttons[0] && g.buttons[0].pressed) input.jump = 1;
+    if(g.buttons[1] && g.buttons[1].pressed) { input.repel = 1; setTimeout(()=>input.repel=0,150); }
+    if(g.buttons[9] && g.buttons[9].pressed) input.pause=1;
+    if(g.axes && Math.abs(g.axes[1])>0.5){
+      if(g.axes[1] < -0.5) input.jump = 1;
     }
-    leftStick.addEventListener('touchstart', e=>{
-      e.preventDefault(); tracking = pt(e); touchActive=true;
-    }, {passive:false});
-    leftStick.addEventListener('touchmove', e=>{
-      if(!tracking) return;
-      const p = pt(e);
-      const dx = p.x - (leftStick.getBoundingClientRect().left + leftStick.clientWidth/2);
-      const dy = p.y - (leftStick.getBoundingClientRect().top + leftStick.clientHeight/2);
-      const max = 36;
-      const nx = Math.max(-max, Math.min(max, dx));
-      const ny = Math.max(-max, Math.min(max, dy));
-      nub.style.transform = `translate(${nx}px, ${ny}px)`;
-      // map to input
-      input.left = nx < -10 ? 1 : 0;
-      input.right = nx > 10 ? 1 : 0;
-      input.up = ny < -10 ? 1 : 0;
-      input.down = ny > 10 ? 1 : 0;
-    }, {passive:false});
-    leftStick.addEventListener('touchend', e=>{
-      tracking = null; touchActive=false;
-      nub.style.transform = 'translate(0,0)';
-      input.left=input.right=input.up=input.down=0;
-    });
-
-    // buttons
-    btnA.addEventListener('touchstart', e=>{ e.preventDefault(); input.attack=1; }, {passive:false});
-    btnA.addEventListener('touchend', e=>{ e.preventDefault(); input.attack=0; }, {passive:false});
-    btnB.addEventListener('touchstart', e=>{ e.preventDefault(); input.alt=1; }, {passive:false});
-    btnB.addEventListener('touchend', e=>{ e.preventDefault(); input.alt=0; }, {passive:false});
   }
 }
-setupTouch();
 
-/* ---------- Pause / Overlay controls ---------- */
-function togglePause(){
-  game.paused = !game.paused;
-  overlay.classList.toggle('show', game.paused === true || !game.running);
-  if(!game.paused && !game.running){
-    // restarting from game over
-    restartGame();
+/* Update loop */
+let last = performance.now();
+function step(ts){
+  const dt = Math.min(33, ts - last); last = ts;
+  if(game.paused){ requestAnimationFrame(step); return; }
+  pollGamepads();
+  // resume audio on first gesture
+  // movement: auto-run forward with camera; player can change lanes (left/right)
+  // lane change
+  if(input.left){ game.player.lane = Math.max(0, game.player.lane - 1); input.left = 0; playBeep(260,0.06); }
+  if(input.right){ game.player.lane = Math.min(lanes.length-1, game.player.lane + 1); input.right = 0; playBeep(260,0.06); }
+  game.player.y = lerp(game.player.y, lanes[game.player.lane], 0.25);
+
+  // sprint toggle
+  game.player.sprintMult = input.sprint ? 1.9 : 1.0;
+
+  // jumping
+  if(input.jump && game.player.grounded){
+    game.player.vy = game.player.jumpForce; game.player.grounded = false; input.jump = 0; playBeep(440,0.08);
   }
-}
-window.addEventListener('blur', ()=>{ if(game.running){ game.paused=true; overlay.classList.add('show'); } });
-resumeBtn.addEventListener('click', ()=>{
-  overlay.classList.remove('show');
-  if(!game.running) restartGame();
-  else game.paused=false;
-});
-restartBtn.addEventListener('click', restartGame);
+  game.player.vy += 0.6 * (dt/16); game.player.y += game.player.vy * (dt/16);
+  // ground check
+  const groundY = lanes[1];
+  if(game.player.y >= groundY){ game.player.y = groundY; game.player.vy = 0; game.player.grounded = true; }
 
-function restartGame(){
-  // reset state
-  game.enemies = [];
-  game.mirrorEnemies = [];
-  game.time = 0;
-  game.wave = 1;
-  game.spawnInterval = 2000;
-  game.lastSpawn = performance.now();
-  game.score = 0;
-  game.hp = 10;
-  game.player = makePlayer(200, cW.height/2, '#eaeaea');
-  game.mirrorPlayer = makePlayer(cW.width - 200, cW.height/2, '#bdbdbd');
-  game.running = true;
-  game.paused = false;
-  overlay.classList.remove('show');
-  lastTs = performance.now();
+  // camera moves to the right automatically - speed scales with wave
+  const baseSpeed = 1.6 + game.wave * 0.12;
+  cameraX += baseSpeed * game.player.sprintMult * (dt/16);
+
+  // spawn timers
+  game.spawnTimer += dt;
+  if(game.spawnTimer > Math.max(700, 1400 - game.wave*80)){
+    game.spawnTimer = 0;
+    if(Math.random() < 0.8) spawnObstacle();
+    if(Math.random() < 0.15 + Math.min(0.3, game.wave*0.02)) spawnPowerup();
+  }
+
+  // move obstacles left (relative to camera)
+  for(let i=game.obstacles.length-1;i>=0;i--){
+    const o = game.obstacles[i];
+    const screenX = o.x - cameraX;
+    // collision if near player's lane and x overlap and player on ground
+    const px = 120; // fixed player screen x
+    if(screenX < px + 18 && screenX + o.w > px && Math.abs(lanes[o.lane] - game.player.y) < 8){
+      // if player is above (jumped) and clears obstacle, ignore
+      if(!game.player.grounded && game.player.vy < 0.1){
+        // jumped over
+      } else {
+        // hit obstacle
+        game.hp -= 1;
+        game.obstacles.splice(i,1);
+        playBeep(100,0.12,0.06);
+        if(game.hp <= 0) endRun();
+      }
+    }
+    // remove off-screen left
+    if(screenX < -200) game.obstacles.splice(i,1);
+  }
+
+  // powerup collisions
+  for(let i=game.powerups.length-1;i>=0;i--){
+    const p = game.powerups[i];
+    const screenX = p.x - cameraX;
+    if(Math.abs(screenX - 120) < 22 && p.lane === game.player.lane){
+      // collect
+      handlePowerup(p.type);
+      game.powerups.splice(i,1);
+      playBeep(800,0.06,0.03);
+      game.score += 12;
+    } else if(screenX < -200) game.powerups.splice(i,1);
+  }
+
+  // exit collision
+  if(game.exit){
+    const screenX = game.exit.x - cameraX;
+    if(screenX < 120 + 30 && screenX + game.exit.w > 120 && Math.abs(lanes[game.exit.lane] - game.player.y) < 10){
+      // win
+      winRun();
+    }
+  } else {
+    maybeSpawnExit();
+  }
+
+  // Mirror behavior: mirror.x chases cameraX - offset (mirror tries to catch you)
+  const targetX = cameraX - 120 - 100 * (1 + game.wave*0.2);
+  // mirror speed increases with waves and rage
+  game.mirror.speed += 0.0008 * dt + game.mirror.rage*0.001;
+  game.mirror.x += (targetX - game.mirror.x) * Math.min(0.02 + 0.001*game.wave, 0.08);
+  // mirror occasionally "burst" forward toward you when close or at wave change
+  if(Math.random() < 0.003 + Math.min(0.02, game.wave*0.002)) { game.mirror.x += 40 + game.wave*6; game.mirror.rage += 1; }
+
+  // mirror energy: if repel used, push mirror back
+  if(input.repel && repelCharges > 0){
+    game.mirror.x -= 240;
+    game.mirror.rage = Math.max(0, game.mirror.rage-1);
+    repelCharges--;
+    input.repel = 0;
+    playBeep(600,0.12,0.05);
+  }
+
+  // mirror collision with player: if mirror gets close, big penalty
+  const mirrorScreenX = (game.mirror.x - cameraX) + leftC.width; // in mirror view we offset differently - but we check proximity via world distance
+  if(cameraX - game.mirror.x < 300){ // very close
+    // reduce light and increase score penalty
+    game.light = Math.max(0, game.light - 0.03 * dt);
+  }
+
+  // waves/time
+  game.time += dt;
+  if(game.time > game.wave * game.waveDuration){ newWave(); game.time = 0; game.score += 30 * game.wave; }
+  // slowly drain flashlight when sprinting
+  if(game.player.sprintMult > 1){ game.player.light = Math.max(0, game.player.light - 0.06 * dt/16); }
+  // flashlight continues draining slowly
+  game.player.light = Math.max(0, game.player.light - 0.003 * dt/16);
+
+  // update HUD
+  hudScore.textContent = Math.floor(game.score);
+  hudWave.textContent = game.wave;
+  hudHP.textContent = game.hp;
+  hudLight.textContent = Math.max(0, Math.floor(game.player.light));
+
+  // render both canvases
+  renderLeft();
+  renderRight();
+
+  if(game.running) requestAnimationFrame(step);
+}
+
+/* Powerups & resources */
+let repelCharges = 1;
+function handlePowerup(type){
+  if(type === 'battery'){ game.player.light = Math.min(100, game.player.light + 30); }
+  if(type === 'boost'){ /* brief auto sprint */ applyBoost(); }
+  if(type === 'repel'){ repelCharges = Math.min(3, repelCharges + 1); }
+}
+let boostTimer = 0;
+function applyBoost(){
+  boostTimer = 1400;
+  playBeep(1200,0.12,0.04);
+}
+function endRun(){
+  game.running = false;
+  showOverlay('Game Over', `You were caught... Score: ${Math.floor(game.score)}. Best: ${best}`);
+  if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY, String(best)); }
+}
+function winRun(){
+  game.running = false;
+  game.score += 120 * game.wave;
+  showOverlay('You Escaped', `You reached the Exit Gate. Score: ${Math.floor(game.score)}. Best: ${best}`);
+  if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY, String(best)); }
+}
+
+/* Rendering */
+function renderLeft(){
+  const w = leftC.width, h = leftC.height;
+  L.clearRect(0,0,w,h);
+  // ambient background (dark)
+  L.fillStyle = '#020204'; L.fillRect(0,0,w,h);
+  // draw ground
+  L.fillStyle = '#0b0b0b'; L.fillRect(0,h-120,w,140);
+  // draw obstacles relative to camera
+  L.save();
+  // create flashlight mask
+  // full-screen dark layer
+  L.fillStyle = 'rgba(0,0,0,0.92)';
+  L.fillRect(0,0,w,h);
+
+  // compute flashlight cone in screen coordinates
+  const px = 120, py = game.player.y;
+  const coneRadius = 280 + (game.player.light * 2.0);
+  const shake = (Math.random()*2 - 1) * (game.player.sprintMult > 1 ? 6 : 2) + Math.sin(Date.now()/120)*1.2;
+  const angle = -0.05 + (Math.random()*0.02) + (game.player.sprintMult > 1 ? -0.03 : 0);
+  // reveal triangle using composite operation
+  L.globalCompositeOperation = 'destination-out';
+  L.beginPath();
+  L.moveTo(px, py - 6);
+  L.lineTo(px + coneRadius * Math.cos(angle + 0.35) + shake, py - coneRadius * Math.sin(angle + 0.2));
+  L.lineTo(px + coneRadius * Math.cos(angle - 0.35) + shake, py + coneRadius * Math.sin(angle - 0.2));
+  L.closePath();
+  L.fill();
+  L.globalCompositeOperation = 'source-over';
+
+  // draw ahead visible items (only within cone area we can optionally draw brighter)
+  // obstacles
+  for(const o of game.obstacles){
+    const sx = Math.round(o.x - cameraX);
+    const sy = lanes[o.lane];
+    // simple visibility check: point inside cone bounding rect
+    if(sx > -200 && sx < w + 200){
+      // darkened if outside cone (we already masked)
+      L.fillStyle = '#883a3a';
+      L.fillRect(sx, sy - o.h, o.w, o.h);
+      // hazard detail
+      L.fillStyle = '#2a2a2a';
+      L.fillRect(sx + 4, sy - o.h + 6, Math.max(6,o.w-8), Math.max(6, o.h-12));
+    }
+  }
+
+  // draw exit if exists (faintly)
+  if(game.exit){
+    const sx = Math.round(game.exit.x - cameraX);
+    const sy = lanes[game.exit.lane] - 40;
+    L.fillStyle = '#2b4b3b';
+    L.fillRect(sx, sy, game.exit.w, game.exit.h);
+    // gate light (glow)
+    L.globalAlpha = 0.12;
+    createGlow(L, sx + game.exit.w/2, sy + 20, 120);
+    L.globalAlpha = 1;
+  }
+
+  // draw powerups
+  for(const p of game.powerups){
+    const sx = Math.round(p.x - cameraX);
+    const sy = lanes[p.lane] - 20;
+    if(p.type === 'battery'){ L.fillStyle = '#6fd2ff'; L.fillRect(sx-8, sy-8, 18, 18); }
+    if(p.type === 'boost'){ L.fillStyle = '#ffd36f'; L.fillRect(sx-8, sy-8, 18, 18); }
+    if(p.type === 'repel'){ L.fillStyle = '#d38fff'; L.fillRect(sx-8, sy-8, 18, 18); }
+  }
+
+  // draw player (silhouette) - reveal as bright stroke inside cone
+  L.fillStyle = '#fff';
+  L.beginPath();
+  L.arc(px, game.player.y - 18, 9, 0, Math.PI*2);
+  L.fill();
+  L.strokeStyle = '#fff';
+  L.lineWidth = 3;
+  L.beginPath();
+  L.moveTo(px, game.player.y - 10);
+  L.lineTo(px, game.player.y + 20);
+  L.moveTo(px, game.player.y + 6);
+  L.lineTo(px - 12, game.player.y + 2);
+  L.moveTo(px, game.player.y + 6);
+  L.lineTo(px + 12, game.player.y + 2);
+  L.stroke();
+
+  // subtle particle/stomp underfoot
+  L.fillStyle = 'rgba(255,255,255,0.02)';
+  L.fillRect(0,h-120,w,120);
+
+  L.restore();
+
+  // HUD elements overlay (left canvas also shows charges)
+  L.fillStyle = '#fff';
+  L.font = '12px system-ui';
+  L.fillText(`Repel: ${repelCharges}`, 12, h-16);
+  L.fillText(`Best: ${best}`, 100, h-16);
+}
+
+/* helper glow */
+function createGlow(ctx,x,y,r){
+  const g = ctx.createRadialGradient(x,y,1,x,y,r);
+  g.addColorStop(0, 'rgba(255,255,255,0.22)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+}
+
+/* Right (mirror) view: shows mirror-self and mirrored hazards; darker purple tint */
+function renderRight(){
+  const w = rightC.width, h = rightC.height;
+  R.clearRect(0,0,w,h);
+  R.fillStyle = '#050012'; R.fillRect(0,0,w,h);
+  // show a mirrored "camera": show ghost of player's run but dim
+  // mirror shows mirror.x relative to camera in a different coordinate (we flip horizontally)
+  const mirrorOffset = (cameraX - game.mirror.x) * 0.2;
+  // background grid
+  R.globalAlpha = 0.05;
+  R.fillStyle = '#fff';
+  for(let y=0;y<h;y+=12){ R.fillRect(0,y,w,1); }
+  R.globalAlpha = 1;
+
+  // draw mirror-player (large ghost)
+  const mx = w - 120 - mirrorOffset;
+  const my = game.player.y;
+  R.save();
+  // tinted ghost
+  R.fillStyle = 'rgba(190,120,255,0.95)';
+  R.beginPath();
+  R.arc(mx, my - 18, 12, 0, Math.PI*2); R.fill();
+  R.strokeStyle = 'rgba(150,100,200,0.9)'; R.lineWidth = 3;
+  R.beginPath(); R.moveTo(mx, my - 8); R.lineTo(mx, my + 20); R.moveTo(mx, my + 6); R.lineTo(mx - 14, my + 2); R.moveTo(mx, my + 6); R.lineTo(mx + 14, my + 2); R.stroke();
+  R.restore();
+
+  // mirror hazards: spawn as darker shapes chasing mirror-player (simulate by copying obstacles but offset)
+  for(const o of game.obstacles){
+    const sx = Math.round(w - (o.x - cameraX) * 0.35 - 40);
+    const sy = lanes[o.lane];
+    R.fillStyle = 'rgba(120,20,120,0.65)'; R.fillRect(sx, sy - o.h, o.w, o.h);
+  }
+
+  // mirror chase presence indicator
+  R.fillStyle = 'rgba(255,255,255,0.03)'; R.fillRect(0,h-120,w,120);
+  // vignette
+  R.globalCompositeOperation = 'overlay';
+  const g = R.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.5)');
+  R.fillStyle = g; R.fillRect(0,0,w,h); R.globalCompositeOperation = 'source-over';
+
+  // mirror heartbeat effect if chasing
+  if(cameraX - game.mirror.x < 420){
+    const alpha = 0.06 + Math.max(0, (420 - (cameraX - game.mirror.x))/420)*0.2;
+    R.fillStyle = `rgba(255,40,60,${alpha})`; R.fillRect(0,0,w,h);
+  }
+
+  // draw a subtle bar showing mirror distance
+  R.fillStyle = '#fff'; R.font = '12px system-ui';
+  const dist = Math.max(0, Math.floor((cameraX - game.mirror.x)/10));
+  R.fillText(`Mirror distance: ${dist}`, 12, 18);
+}
+
+/* Lerp util */
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+/* Start/stop & overlay */
+function showOverlay(title, text){
+  document.getElementById('panelTitle').textContent = title;
+  document.getElementById('panelText').textContent = text;
+  overlay.classList.add('show');
+}
+resumeBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); if(!game.running) resetGame(); else game.paused=false; });
+restartBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); resetGame(); });
+
+window.addEventListener('keydown', e=>{ if(e.key === 'p' || e.key === 'Escape') { game.paused = !game.paused; overlay.classList.toggle('show', game.paused); } });
+
+/* Reset / new run */
+function resetGame(){
+  game = { running:true, paused:false, time:0, score:0, wave:1, hp:3, light:100, player:makePlayer(), mirror:{x: -200, y: 0, speed:1.6, rage:0}, obstacles:[], mirrorOb:[], powerups:[], exit:null, spawnTimer:0, waveTimer:0, waveDuration:20000 };
+  repelCharges = 1;
+  cameraX = 0;
+  last = performance.now();
   requestAnimationFrame(step);
 }
 
-/* ---------- Small UX helpers ---------- */
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden){ game.paused=true; overlay.classList.add('show'); }
-});
-window.addEventListener('keydown', e=>{
-  if(e.key === 'Escape' || e.key === 'p') togglePause();
-});
+/* Winning & losing */
+function endRun(){ game.running=false; showOverlay('Game Over', `You were caught. Score: ${Math.floor(game.score)}. Best: ${best}`); if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY,String(best)); }}
 
-/* ---------- Orientation prompt handling ---------- */
-function checkOrientation(){
-  const isPortrait = window.innerHeight > window.innerWidth;
-  if(isPortrait){
-    rotatePrompt.classList.add('show');
-  } else {
-    rotatePrompt.classList.remove('show');
-  }
-}
-window.addEventListener('resize', checkOrientation);
-checkOrientation();
+/* Apply boost timer tick in main loop: shorten/affect camera speed */
+setInterval(()=>{ if(!game.running) return; if(boostTimer>0){ boostTimer -= 100; } }, 100);
 
-/* ---------- Init & start ---------- */
-// initial ambience on user gesture on some platforms
-document.body.addEventListener('click', function oneTap(){
-  try{ if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
-  catch(e){}
-  document.body.removeEventListener('click', oneTap);
-});
-// Gamepad connection events (optional)
-window.addEventListener('gamepadconnected', e=>{
-  console.log('Gamepad connected', e.gamepad.id);
-  // show hint briefly
-  const old = $('#title').textContent;
-  $('#title').textContent = 'Gamepad detected — Ready';
-  setTimeout(()=>$('#title').textContent = old, 2000);
-});
-
-// seed some enemies so it is interesting immediately
-for(let i=0;i<3;i++) spawnEnemy(i%2===0);
-
-// start game loop
-lastTs = performance.now();
+/* initial seeds */
+for(let i=0;i<3;i++){ spawnObstacle(); if(Math.random()<0.4) spawnPowerup(); }
+last = performance.now();
 requestAnimationFrame(step);
 
-/* ---------- Helpful note: How to deploy on GitHub Pages ----------
-  1. Create a new GitHub repo (public/private).
-  2. Add this file as index.html in the repository root (or set the Pages folder to /docs and add there).
-  3. In repo Settings -> Pages, set source to 'main' branch and root (or 'gh-pages' branch); GitHub will publish at https://<username>.github.io/<repo> .
-  4. On iOS, open the URL in Safari, tap Share -> 'Add to Home Screen'. Because of the meta tags above, the game will launch standalone.
-  5. Optional: Add a 192x192 PNG named icon-192.png in the repo root to serve as the app icon.
------------------------------------------------------------------ */
+/* small helpers: play audio on gesture */
+document.body.addEventListener('pointerdown', function initAudio(){
+  try{ if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); else ensureAudio(); }catch(e){}
+  document.body.removeEventListener('pointerdown', initAudio);
+});
+
+/* show instructions on load briefly */
+showOverlay('Welcome to MirrorFall', 'Run, jump, and use your flashlight. Survive waves and escape when the Exit Gate appears. Tap Resume to start.');
 </script>
 </body>
 </html>
