@@ -1,570 +1,807 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>MirrorFall — Horror Runner</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MirrorFall</title>
 
-<!-- Web App / iOS Home Screen -->
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="MirrorFall" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="icon-192.png" />
+<!-- iOS Web App Meta (for "Add to Home Screen" look) -->
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MirrorFall">
+
+<!-- Manifest (optional, good for PWA) -->
+<link rel="manifest" href="manifest.json">
 
 <style>
-  :root{
-    --bg:#050507; --panel:rgba(0,0,0,0.45); --accent:#ff6f61; --ghost:#cfcfcf;
+  /* Landscape-first, centered canvas */
+  html,body{
+    height:100%;
+    margin:0;
+    background:#000;
+    color:#fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    overflow:hidden;
   }
-  html,body{ height:100%; margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial; background:#000; color:#eee; -webkit-text-size-adjust:100%; -webkit-user-select:none; overflow:hidden;}
-  #app{ display:flex; width:100vw; height:100vh; align-items:stretch; justify-content:stretch; }
-  .half{ flex:1 1 50%; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#020203; }
-  canvas{ width:100%; height:100%; display:block; background:transparent; }
-  #mirror{ border-left:2px solid rgba(255,255,255,0.03); background:linear-gradient(90deg, rgba(0,0,0,0.02), rgba(10,6,10,0.12)); }
-  #title{ position:absolute; top:12px; left:50%; transform:translateX(-50%); padding:8px 12px; background:var(--panel); border-radius:8px; font-weight:700; letter-spacing:3px; }
-  .hud{ position:absolute; top:12px; left:12px; background:var(--panel); padding:8px 10px; border-radius:8px; font-size:13px; }
-  .hud.right{ left:auto; right:12px; text-align:right; }
-  #overlay{ display:none; position:absolute; inset:0; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:40; }
-  #overlay.show{ display:flex; }
-  .panel{ background:rgba(12,12,12,0.95); padding:18px; border-radius:10px; width:90%; max-width:560px; text-align:center; }
-  button.btn{ margin-top:10px; padding:10px 16px; border-radius:8px; background:var(--accent); color:#fff; border:0; font-weight:700; }
-  #rotate{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:80; text-align:center; color:#ddd;}
-  @media (orientation:portrait){ #rotate{ display:flex; } }
-  /* touch UI */
-  #touchUI{ position:absolute; bottom:14px; left:12px; right:12px; display:flex; justify-content:space-between; pointer-events:none; }
-  .touch-left, .touch-right{ pointer-events:auto; display:flex; gap:12px; align-items:center; }
-  .touch-btn{ width:64px; height:64px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; font-weight:700; color:#ddd; }
-  .visually-hidden{ position:absolute!important; width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0; }
+
+  #gameWrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    width:100%;
+    box-sizing:border-box;
+    padding:10px;
+  }
+
+  canvas#game {
+    background: linear-gradient(#050507, #0b0b0f 60%);
+    width:100%;
+    height:100%;
+    max-height:100vh;
+    max-width:1600px;
+    image-rendering: optimizeSpeed;
+    border-radius:8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+    display:block;
+  }
+
+  /* UI overlays */
+  #ui {
+    position: absolute;
+    left:12px;
+    top:12px;
+    z-index:20;
+    pointer-events:none;
+  }
+  #score {
+    font-size:18px;
+    font-weight:600;
+    text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  }
+  #controlsHint {
+    position: absolute;
+    right:12px;
+    top:12px;
+    pointer-events:none;
+    font-size:14px;
+    opacity:0.85;
+  }
+
+  /* Virtual touch controls for mobile (large, translucent) */
+  .touchbtn {
+    position: absolute;
+    bottom:22px;
+    width:38%;
+    height:32%;
+    border-radius:12px;
+    pointer-events:auto;
+    opacity:0.02; /* nearly invisible but receives touches */
+    -webkit-user-select:none;
+  }
+  .leftTouch { left:6px; }
+  .rightTouch { right:6px; }
+
+  /* Visible virtual buttons for desktop testing (toggle with ? key) */
+  .visBtn {
+    position: absolute;
+    bottom:18px;
+    width:120px;
+    height:48px;
+    background:rgba(255,255,255,0.06);
+    color:#fff;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    letter-spacing:1px;
+    pointer-events:none;
+  }
+  #jumpBtn { left:18px; }
+  #dashBtn { right:18px; }
+
+  /* Simple instructions center */
+  #overlay {
+    position:absolute;
+    z-index:30;
+    left:0; right:0; top:0; bottom:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  #overlay .panel{
+    max-width:780px;
+    text-align:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));
+    border-radius:12px;
+    padding:18px 26px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.7);
+    pointer-events:auto;
+  }
+  button#startBtn {
+    margin-top:12px;
+    font-size:18px;
+    padding:10px 18px;
+    border-radius:8px;
+    border:0;
+    background:#ff2f5a;
+    color:white;
+    font-weight:700;
+  }
+
+  /* Jumpscare full-screen flash */
+  #jumpscare {
+    position: absolute;
+    inset:0;
+    background:#000;
+    z-index:999;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:48px;
+    font-weight:900;
+    text-shadow: 0 6px 40px #ff2f5a;
+  }
+
+  @media (orientation:portrait) {
+    /* Tell user to rotate */
+    #portraitWarning {
+      position: absolute;
+      inset:0;
+      z-index:200;
+      background:linear-gradient(0deg, rgba(0,0,0,0.85), rgba(0,0,0,0.9));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:20px;
+      color:#fff;
+      font-size:20px;
+      pointer-events:none;
+    }
+  }
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="half" id="world">
-    <canvas id="leftCanvas" width="1280" height="720" aria-label="Game world"></canvas>
-    <div id="title">M I R R O R F A L L</div>
-    <div class="hud" id="hudLeft">Score: <span id="score">0</span> · Wave: <span id="wave">1</span></div>
-    <div class="hud right" style="top:12px;right:12px;">HP: <span id="hp">3</span> · Light: <span id="light">100</span>%</div>
+<div id="gameWrap">
+  <canvas id="game" width="1280" height="720"></canvas>
 
-    <div id="touchUI" class="visually-hidden" aria-hidden="true">
-      <div class="touch-left">
-        <div class="touch-btn" id="tapJump">JUMP</div>
+  <div id="ui">
+    <div id="score">Score: 0</div>
+  </div>
+  <div id="controlsHint">
+    Controls: ← → / A D or tap left/right. Controller supported (A jump, B dash). Press ? for help.
+  </div>
+
+  <!-- Invisible touch areas -->
+  <div class="touchbtn leftTouch" id="leftTouch"></div>
+  <div class="touchbtn rightTouch" id="rightTouch"></div>
+
+  <!-- Visible debug buttons -->
+  <div id="jumpBtn" class="visBtn" style="display:none;">JUMP</div>
+  <div id="dashBtn" class="visBtn" style="display:none;">DASH</div>
+
+  <div id="overlay">
+    <div class="panel" id="panel">
+      <h1 style="margin:0;letter-spacing:2px">MirrorFall</h1>
+      <p style="margin:6px 0 0 0">You are being chased by your mirror self. You have a flashlight. Run. Survive as long as you can.</p>
+      <p style="margin:8px 0 0 0; font-size:13px; opacity:0.9">
+        Quick play: tap or press A to jump, B or right-tap to dash (short speed burst). Flashlight (F or touch-hold left) stuns mirror briefly.
+      </p>
+      <div style="margin-top:12px;">
+        <button id="startBtn">Start Run</button>
       </div>
-      <div class="touch-right">
-        <div class="touch-btn" id="tapSprint">SPRINT</div>
-        <div class="touch-btn" id="tapRepel">REPEL</div>
-      </div>
+      <p style="font-size:12px;margin-top:8px;opacity:0.8">Pro tip: staying near the center gives better reaction space — but the Mirror learns.</p>
     </div>
   </div>
 
-  <div class="half" id="mirror">
-    <canvas id="rightCanvas" width="1280" height="720" aria-label="Mirror view"></canvas>
-    <div class="hud" style="top:12px;left:12px;">Mirror World</div>
-  </div>
-
-  <div id="overlay" role="dialog" aria-modal="true">
-    <div class="panel" id="panelBox">
-      <h2 id="panelTitle">Paused</h2>
-      <p id="panelText">Survive the waves. When the Exit Gate appears, reach it to escape. Use Battery and Repel power-ups wisely.</p>
-      <div style="display:flex;gap:8px;justify-content:center;">
-        <button class="btn" id="resume">Resume</button>
-        <button class="btn" id="restart">Restart</button>
-      </div>
-      <p style="font-size:12px;margin-top:10px;color:#bbb;">Controls: ←/→ or A/D to move lanes, Space to jump, Hold to sprint. Gamepad D-pad + A to jump.</p>
-    </div>
-  </div>
-
-  <div id="rotate"><div><h2>Please rotate to landscape</h2><p>MirrorFall plays best in landscape.</p></div></div>
+  <div id="jumpscare">THE MIRROR TOOK YOU</div>
+  <div id="portraitWarning" style="display:none">Rotate device to landscape for best experience.</div>
 </div>
 
 <script>
-/* MirrorFall — Single-file horror runner
-   - Side-scrolling runner (left canvas) inspired by stickman school run
-   - Mirror view (right canvas) shows mirror-self chasing; mirror spawns waves
-   - Flashlight cone ahead of player reveals obstacles; outside cone is dark
-   - Waves, exit gate, powerups (battery, speed, repel)
-   - Keyboard, gamepad, and touch controls
+/* MirrorFall — core variables and game loop
+   Single-file engine using canvas.
+   Controls: keyboard, touch (left/right halves), gamepad support.
 */
 
-const leftC = document.getElementById('leftCanvas'), L = leftC.getContext('2d');
-const rightC = document.getElementById('rightCanvas'), R = rightC.getContext('2d');
-const hudScore = document.getElementById('score'), hudWave = document.getElementById('wave');
-const hudHP = document.getElementById('hp'), hudLight = document.getElementById('light');
-const overlay = document.getElementById('overlay'), resumeBtn = document.getElementById('resume'), restartBtn = document.getElementById('restart');
-const tapJump = document.getElementById('tapJump'), tapSprint = document.getElementById('tapSprint'), tapRepel = document.getElementById('tapRepel');
-const rotate = document.getElementById('rotate');
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d', { alpha: false });
+let W = canvas.width, H = canvas.height;
 
-const STORAGE_KEY = 'mirrorfall_best_v1';
-let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-
-/* Resize logic */
-function fit(){
-  const w = window.innerWidth, h = window.innerHeight;
-  leftC.width = Math.max(640, Math.round(w/2));
-  leftC.height = Math.max(360, Math.round(h));
-  rightC.width = leftC.width;
-  rightC.height = leftC.height;
+// Scaling to device pixel ratio for crisp canvas
+function resizeCanvas() {
+  const ratio = window.devicePixelRatio || 1;
+  // maintain 16:9 landscape when possible
+  const wrap = document.getElementById('gameWrap');
+  const maxW = Math.min(window.innerWidth - 20, 1600);
+  const maxH = Math.min(window.innerHeight - 20, 900);
+  // Fit into view preserving aspect ratio
+  const targetRatio = 16/9;
+  let cw = maxW, ch = Math.round(cw / targetRatio);
+  if (ch > maxH) { ch = maxH; cw = Math.round(ch * targetRatio); }
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  W = canvas.width = Math.round(cw * ratio);
+  H = canvas.height = Math.round(ch * ratio);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // scale drawing commands
 }
-fit(); window.addEventListener('resize', fit);
-function checkOrientation(){ if(window.innerHeight > window.innerWidth) rotate.classList.add('show'); else rotate.classList.remove('show'); }
-window.addEventListener('resize', checkOrientation); checkOrientation();
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-/* Input */
-const input = { left:0, right:0, jump:0, sprint:0, repel:0, pause:0 };
-const keyMap = { 'ArrowLeft':'left','a':'left','ArrowRight':'right','d':'right',' ': 'jump','w':'jump','W':'jump','Shift':'sprint','Enter':'repel','p':'pause','Escape':'pause' };
-window.addEventListener('keydown', e=>{ const k = keyMap[e.key]; if(k){ input[k]=1; e.preventDefault(); }});
-window.addEventListener('keyup', e=>{ const k = keyMap[e.key]; if(k){ input[k]=0; e.preventDefault(); }});
+// Game state
+let running = false;
+let paused = false;
+let score = 0;
+let speed = 4;       // world scroll speed
+let timeElapsed = 0;
+let difficulty = 0;  // increases with time
+let lastTimestamp = 0;
 
-/* Touch UI */
-if('ontouchstart' in window){
-  document.getElementById('touchUI').classList.remove('visually-hidden');
-  document.getElementById('touchUI').setAttribute('aria-hidden','false');
-  tapJump.addEventListener('touchstart', e=>{ e.preventDefault(); input.jump=1; }, {passive:false});
-  tapJump.addEventListener('touchend', e=>{ e.preventDefault(); input.jump=0; }, {passive:false});
-  tapSprint.addEventListener('touchstart', e=>{ e.preventDefault(); input.sprint=1; }, {passive:false});
-  tapSprint.addEventListener('touchend', e=>{ e.preventDefault(); input.sprint=0; }, {passive:false});
-  tapRepel.addEventListener('touchstart', e=>{ e.preventDefault(); input.repel=1; setTimeout(()=>input.repel=0,150); }, {passive:false});
-}
-
-/* Game state */
-let game = {
-  running:true, paused:false, time:0, score:0, wave:1, hp:3, light:100,
-  player:null, mirror:null, obstacles:[], mirrorOb:[], powerups:[], exit:null, spawnTimer:0, waveTimer:0, waveDuration:20000
+// Player
+const player = {
+  x: 180, y: 0, w: 28, h: 56,
+  vy: 0,
+  grounded: false,
+  baseY: 0,
+  jumpPower: -12,
+  dashTime: 0,
+  dashCooldown: 0,
+  maxDashCooldown: 0.8,
+  flashlightCharge: 1.0,
+  flashlightActive: false
 };
 
-/* Player: lanes-style runner like school run */
-const lanes = [120, 220, 320]; // y positions relative to canvas
-function makePlayer(){
-  return {
-    x: 120, // relative x in screen units (camera moves right)
-    y: lanes[1],
-    lane:1,
-    vy:0,
-    grounded:true,
-    jumpForce:-10,
-    width:22, height:44,
-    vx:2.2, // base forward auto movement speed
-    sprintMult:1,
-    flashlightAngle:0,
-    light:100
-  };
-}
-game.player = makePlayer();
-game.mirror = { x: -200, y: game.player.y, speed:1.6, rage:0 };
+// Mirror (pursuer)
+const mirror = {
+  x: 40,
+  speed: 3.2,
+  anger: 0 // affects aggressiveness & jumpscare chance
+};
 
-/* Audio tiny */
-let audioCtx;
-function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-function playBeep(freq=220,dur=0.12,vol=0.02){
-  try{
-    ensureAudio();
-    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-    o.type='sine'; o.frequency.value=freq; g.gain.value=vol;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+dur); setTimeout(()=>o.stop(), dur*1000 + 30);
-  }catch(e){}
-}
+// Obstacles and pickups
+let obstacles = [];
+let pickups = [];
 
-/* Spawn utilities */
-function spawnObstacle(){
-  // obstacle placed ahead at camera + plus offset
-  const x = cameraX + leftC.width + 60 + Math.random()*140;
-  const lane = Math.floor(Math.random()*3);
-  game.obstacles.push({x, lane, w:28 + Math.random()*16, h:18 + Math.random()*20 });
-}
-function spawnPowerup(){
-  const types = ['battery','boost','repel'];
-  const type = types[Math.floor(Math.random()*types.length)];
-  const x = cameraX + leftC.width + 120 + Math.random()*240;
-  const lane = Math.floor(Math.random()*3);
-  game.powerups.push({x, lane, type});
-}
+// Config / tuning
+const GRAV = 0.6;
+const OBSTACLE_SPAWN_RATE = 1.0; // per second baseline
+const PICKUP_SPAWN_RATE = 0.12;
+const MIN_GAP = 220;
+const MAX_GAP = 520;
+const MAX_OBSTACLE_SPEED = 12;
 
-/* Camera (side-scrolling) */
-let cameraX = 0;
+// Visual flash (jumpscare) control
+const jumpscareEl = document.getElementById('jumpscare');
 
-/* Wave & Exit logic */
-function newWave(){
-  game.wave++;
-  game.spawnTimer = 0;
-  // occasionally spawn mirror hazard burst
-  for(let i=0;i<2+Math.floor(game.wave/2);i++) spawnObstacle();
-  // sometimes spawn a powerup cluster
-  if(Math.random() < 0.6) spawnPowerup();
-}
-function maybeSpawnExit(){
-  // after enough waves, spawn exit gate ahead
-  if(game.wave >= 3 && !game.exit && Math.random() < 0.03){
-    game.exit = { x: cameraX + leftC.width + 360, lane:1, w:80, h:110 };
-  }
+const uiScore = document.getElementById('score');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+startBtn.onclick = startGame;
+
+// Input state
+const keys = {};
+const touches = { left:false, right:false };
+let showVisibleBtns = false;
+
+// Gamepad
+let gpIndex = null;
+let lastGamepadTimestamp = 0;
+
+/* ---------- Utility functions ---------- */
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function randInt(min,max){ return Math.floor(rand(min,max+1)); }
+
+/* ---------- Start / Reset ---------- */
+function startGame(){
+  overlay.style.display = 'none';
+  running = true;
+  paused = false;
+  score = 0;
+  timeElapsed = 0;
+  speed = 4;
+  difficulty = 0;
+  lastTimestamp = performance.now();
+  obstacles = [];
+  pickups = [];
+  player.vy = 0;
+  player.grounded = true;
+  player.dashTime = 0;
+  player.dashCooldown = 0;
+  player.flashlightCharge = 1.0;
+  player.flashlightActive = false;
+  mirror.x = 40;
+  mirror.speed = 3.2;
+  mirror.anger = 0;
+  requestAnimationFrame(loop);
 }
 
-/* Input: gamepad */
-function pollGamepads(){
-  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
-  for(const g of gps){
-    if(!g) continue;
-    // D-pad
-    input.left = (g.buttons[14] && g.buttons[14].pressed) ? 1 : input.left;
-    input.right = (g.buttons[15] && g.buttons[15].pressed) ? 1 : input.right;
-    if(g.buttons[0] && g.buttons[0].pressed) input.jump = 1;
-    if(g.buttons[1] && g.buttons[1].pressed) { input.repel = 1; setTimeout(()=>input.repel=0,150); }
-    if(g.buttons[9] && g.buttons[9].pressed) input.pause=1;
-    if(g.axes && Math.abs(g.axes[1])>0.5){
-      if(g.axes[1] < -0.5) input.jump = 1;
-    }
-  }
+/* ---------- Input handlers ---------- */
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.key === '?') toggleHelp();
+  if (e.key === 'p') paused = !paused;
+  // Prevent scrolling on space etc
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function toggleHelp() {
+  showVisibleBtns = !showVisibleBtns;
+  document.querySelectorAll('.visBtn').forEach(el=>el.style.display = showVisibleBtns ? 'flex' : 'none');
 }
 
-/* Update loop */
-let last = performance.now();
-function step(ts){
-  const dt = Math.min(33, ts - last); last = ts;
-  if(game.paused){ requestAnimationFrame(step); return; }
-  pollGamepads();
-  // resume audio on first gesture
-  // movement: auto-run forward with camera; player can change lanes (left/right)
-  // lane change
-  if(input.left){ game.player.lane = Math.max(0, game.player.lane - 1); input.left = 0; playBeep(260,0.06); }
-  if(input.right){ game.player.lane = Math.min(lanes.length-1, game.player.lane + 1); input.right = 0; playBeep(260,0.06); }
-  game.player.y = lerp(game.player.y, lanes[game.player.lane], 0.25);
+// Touch handlers: left area = jump/flashlight, right area = dash
+const leftTouch = document.getElementById('leftTouch');
+const rightTouch = document.getElementById('rightTouch');
 
-  // sprint toggle
-  game.player.sprintMult = input.sprint ? 1.9 : 1.0;
+leftTouch.addEventListener('touchstart', e => { touches.left = true; e.preventDefault(); });
+leftTouch.addEventListener('touchend', e => { touches.left = false; e.preventDefault(); });
 
-  // jumping
-  if(input.jump && game.player.grounded){
-    game.player.vy = game.player.jumpForce; game.player.grounded = false; input.jump = 0; playBeep(440,0.08);
-  }
-  game.player.vy += 0.6 * (dt/16); game.player.y += game.player.vy * (dt/16);
-  // ground check
-  const groundY = lanes[1];
-  if(game.player.y >= groundY){ game.player.y = groundY; game.player.vy = 0; game.player.grounded = true; }
+rightTouch.addEventListener('touchstart', e => { touches.right = true; e.preventDefault(); });
+rightTouch.addEventListener('touchend', e => { touches.right = false; e.preventDefault(); });
 
-  // camera moves to the right automatically - speed scales with wave
-  const baseSpeed = 1.6 + game.wave * 0.12;
-  cameraX += baseSpeed * game.player.sprintMult * (dt/16);
-
-  // spawn timers
-  game.spawnTimer += dt;
-  if(game.spawnTimer > Math.max(700, 1400 - game.wave*80)){
-    game.spawnTimer = 0;
-    if(Math.random() < 0.8) spawnObstacle();
-    if(Math.random() < 0.15 + Math.min(0.3, game.wave*0.02)) spawnPowerup();
-  }
-
-  // move obstacles left (relative to camera)
-  for(let i=game.obstacles.length-1;i>=0;i--){
-    const o = game.obstacles[i];
-    const screenX = o.x - cameraX;
-    // collision if near player's lane and x overlap and player on ground
-    const px = 120; // fixed player screen x
-    if(screenX < px + 18 && screenX + o.w > px && Math.abs(lanes[o.lane] - game.player.y) < 8){
-      // if player is above (jumped) and clears obstacle, ignore
-      if(!game.player.grounded && game.player.vy < 0.1){
-        // jumped over
-      } else {
-        // hit obstacle
-        game.hp -= 1;
-        game.obstacles.splice(i,1);
-        playBeep(100,0.12,0.06);
-        if(game.hp <= 0) endRun();
-      }
-    }
-    // remove off-screen left
-    if(screenX < -200) game.obstacles.splice(i,1);
-  }
-
-  // powerup collisions
-  for(let i=game.powerups.length-1;i>=0;i--){
-    const p = game.powerups[i];
-    const screenX = p.x - cameraX;
-    if(Math.abs(screenX - 120) < 22 && p.lane === game.player.lane){
-      // collect
-      handlePowerup(p.type);
-      game.powerups.splice(i,1);
-      playBeep(800,0.06,0.03);
-      game.score += 12;
-    } else if(screenX < -200) game.powerups.splice(i,1);
-  }
-
-  // exit collision
-  if(game.exit){
-    const screenX = game.exit.x - cameraX;
-    if(screenX < 120 + 30 && screenX + game.exit.w > 120 && Math.abs(lanes[game.exit.lane] - game.player.y) < 10){
-      // win
-      winRun();
-    }
-  } else {
-    maybeSpawnExit();
-  }
-
-  // Mirror behavior: mirror.x chases cameraX - offset (mirror tries to catch you)
-  const targetX = cameraX - 120 - 100 * (1 + game.wave*0.2);
-  // mirror speed increases with waves and rage
-  game.mirror.speed += 0.0008 * dt + game.mirror.rage*0.001;
-  game.mirror.x += (targetX - game.mirror.x) * Math.min(0.02 + 0.001*game.wave, 0.08);
-  // mirror occasionally "burst" forward toward you when close or at wave change
-  if(Math.random() < 0.003 + Math.min(0.02, game.wave*0.002)) { game.mirror.x += 40 + game.wave*6; game.mirror.rage += 1; }
-
-  // mirror energy: if repel used, push mirror back
-  if(input.repel && repelCharges > 0){
-    game.mirror.x -= 240;
-    game.mirror.rage = Math.max(0, game.mirror.rage-1);
-    repelCharges--;
-    input.repel = 0;
-    playBeep(600,0.12,0.05);
-  }
-
-  // mirror collision with player: if mirror gets close, big penalty
-  const mirrorScreenX = (game.mirror.x - cameraX) + leftC.width; // in mirror view we offset differently - but we check proximity via world distance
-  if(cameraX - game.mirror.x < 300){ // very close
-    // reduce light and increase score penalty
-    game.light = Math.max(0, game.light - 0.03 * dt);
-  }
-
-  // waves/time
-  game.time += dt;
-  if(game.time > game.wave * game.waveDuration){ newWave(); game.time = 0; game.score += 30 * game.wave; }
-  // slowly drain flashlight when sprinting
-  if(game.player.sprintMult > 1){ game.player.light = Math.max(0, game.player.light - 0.06 * dt/16); }
-  // flashlight continues draining slowly
-  game.player.light = Math.max(0, game.player.light - 0.003 * dt/16);
-
-  // update HUD
-  hudScore.textContent = Math.floor(game.score);
-  hudWave.textContent = game.wave;
-  hudHP.textContent = game.hp;
-  hudLight.textContent = Math.max(0, Math.floor(game.player.light));
-
-  // render both canvases
-  renderLeft();
-  renderRight();
-
-  if(game.running) requestAnimationFrame(step);
-}
-
-/* Powerups & resources */
-let repelCharges = 1;
-function handlePowerup(type){
-  if(type === 'battery'){ game.player.light = Math.min(100, game.player.light + 30); }
-  if(type === 'boost'){ /* brief auto sprint */ applyBoost(); }
-  if(type === 'repel'){ repelCharges = Math.min(3, repelCharges + 1); }
-}
-let boostTimer = 0;
-function applyBoost(){
-  boostTimer = 1400;
-  playBeep(1200,0.12,0.04);
-}
-function endRun(){
-  game.running = false;
-  showOverlay('Game Over', `You were caught... Score: ${Math.floor(game.score)}. Best: ${best}`);
-  if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY, String(best)); }
-}
-function winRun(){
-  game.running = false;
-  game.score += 120 * game.wave;
-  showOverlay('You Escaped', `You reached the Exit Gate. Score: ${Math.floor(game.score)}. Best: ${best}`);
-  if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY, String(best)); }
-}
-
-/* Rendering */
-function renderLeft(){
-  const w = leftC.width, h = leftC.height;
-  L.clearRect(0,0,w,h);
-  // ambient background (dark)
-  L.fillStyle = '#020204'; L.fillRect(0,0,w,h);
-  // draw ground
-  L.fillStyle = '#0b0b0b'; L.fillRect(0,h-120,w,140);
-  // draw obstacles relative to camera
-  L.save();
-  // create flashlight mask
-  // full-screen dark layer
-  L.fillStyle = 'rgba(0,0,0,0.92)';
-  L.fillRect(0,0,w,h);
-
-  // compute flashlight cone in screen coordinates
-  const px = 120, py = game.player.y;
-  const coneRadius = 280 + (game.player.light * 2.0);
-  const shake = (Math.random()*2 - 1) * (game.player.sprintMult > 1 ? 6 : 2) + Math.sin(Date.now()/120)*1.2;
-  const angle = -0.05 + (Math.random()*0.02) + (game.player.sprintMult > 1 ? -0.03 : 0);
-  // reveal triangle using composite operation
-  L.globalCompositeOperation = 'destination-out';
-  L.beginPath();
-  L.moveTo(px, py - 6);
-  L.lineTo(px + coneRadius * Math.cos(angle + 0.35) + shake, py - coneRadius * Math.sin(angle + 0.2));
-  L.lineTo(px + coneRadius * Math.cos(angle - 0.35) + shake, py + coneRadius * Math.sin(angle - 0.2));
-  L.closePath();
-  L.fill();
-  L.globalCompositeOperation = 'source-over';
-
-  // draw ahead visible items (only within cone area we can optionally draw brighter)
-  // obstacles
-  for(const o of game.obstacles){
-    const sx = Math.round(o.x - cameraX);
-    const sy = lanes[o.lane];
-    // simple visibility check: point inside cone bounding rect
-    if(sx > -200 && sx < w + 200){
-      // darkened if outside cone (we already masked)
-      L.fillStyle = '#883a3a';
-      L.fillRect(sx, sy - o.h, o.w, o.h);
-      // hazard detail
-      L.fillStyle = '#2a2a2a';
-      L.fillRect(sx + 4, sy - o.h + 6, Math.max(6,o.w-8), Math.max(6, o.h-12));
-    }
-  }
-
-  // draw exit if exists (faintly)
-  if(game.exit){
-    const sx = Math.round(game.exit.x - cameraX);
-    const sy = lanes[game.exit.lane] - 40;
-    L.fillStyle = '#2b4b3b';
-    L.fillRect(sx, sy, game.exit.w, game.exit.h);
-    // gate light (glow)
-    L.globalAlpha = 0.12;
-    createGlow(L, sx + game.exit.w/2, sy + 20, 120);
-    L.globalAlpha = 1;
-  }
-
-  // draw powerups
-  for(const p of game.powerups){
-    const sx = Math.round(p.x - cameraX);
-    const sy = lanes[p.lane] - 20;
-    if(p.type === 'battery'){ L.fillStyle = '#6fd2ff'; L.fillRect(sx-8, sy-8, 18, 18); }
-    if(p.type === 'boost'){ L.fillStyle = '#ffd36f'; L.fillRect(sx-8, sy-8, 18, 18); }
-    if(p.type === 'repel'){ L.fillStyle = '#d38fff'; L.fillRect(sx-8, sy-8, 18, 18); }
-  }
-
-  // draw player (silhouette) - reveal as bright stroke inside cone
-  L.fillStyle = '#fff';
-  L.beginPath();
-  L.arc(px, game.player.y - 18, 9, 0, Math.PI*2);
-  L.fill();
-  L.strokeStyle = '#fff';
-  L.lineWidth = 3;
-  L.beginPath();
-  L.moveTo(px, game.player.y - 10);
-  L.lineTo(px, game.player.y + 20);
-  L.moveTo(px, game.player.y + 6);
-  L.lineTo(px - 12, game.player.y + 2);
-  L.moveTo(px, game.player.y + 6);
-  L.lineTo(px + 12, game.player.y + 2);
-  L.stroke();
-
-  // subtle particle/stomp underfoot
-  L.fillStyle = 'rgba(255,255,255,0.02)';
-  L.fillRect(0,h-120,w,120);
-
-  L.restore();
-
-  // HUD elements overlay (left canvas also shows charges)
-  L.fillStyle = '#fff';
-  L.font = '12px system-ui';
-  L.fillText(`Repel: ${repelCharges}`, 12, h-16);
-  L.fillText(`Best: ${best}`, 100, h-16);
-}
-
-/* helper glow */
-function createGlow(ctx,x,y,r){
-  const g = ctx.createRadialGradient(x,y,1,x,y,r);
-  g.addColorStop(0, 'rgba(255,255,255,0.22)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-}
-
-/* Right (mirror) view: shows mirror-self and mirrored hazards; darker purple tint */
-function renderRight(){
-  const w = rightC.width, h = rightC.height;
-  R.clearRect(0,0,w,h);
-  R.fillStyle = '#050012'; R.fillRect(0,0,w,h);
-  // show a mirrored "camera": show ghost of player's run but dim
-  // mirror shows mirror.x relative to camera in a different coordinate (we flip horizontally)
-  const mirrorOffset = (cameraX - game.mirror.x) * 0.2;
-  // background grid
-  R.globalAlpha = 0.05;
-  R.fillStyle = '#fff';
-  for(let y=0;y<h;y+=12){ R.fillRect(0,y,w,1); }
-  R.globalAlpha = 1;
-
-  // draw mirror-player (large ghost)
-  const mx = w - 120 - mirrorOffset;
-  const my = game.player.y;
-  R.save();
-  // tinted ghost
-  R.fillStyle = 'rgba(190,120,255,0.95)';
-  R.beginPath();
-  R.arc(mx, my - 18, 12, 0, Math.PI*2); R.fill();
-  R.strokeStyle = 'rgba(150,100,200,0.9)'; R.lineWidth = 3;
-  R.beginPath(); R.moveTo(mx, my - 8); R.lineTo(mx, my + 20); R.moveTo(mx, my + 6); R.lineTo(mx - 14, my + 2); R.moveTo(mx, my + 6); R.lineTo(mx + 14, my + 2); R.stroke();
-  R.restore();
-
-  // mirror hazards: spawn as darker shapes chasing mirror-player (simulate by copying obstacles but offset)
-  for(const o of game.obstacles){
-    const sx = Math.round(w - (o.x - cameraX) * 0.35 - 40);
-    const sy = lanes[o.lane];
-    R.fillStyle = 'rgba(120,20,120,0.65)'; R.fillRect(sx, sy - o.h, o.w, o.h);
-  }
-
-  // mirror chase presence indicator
-  R.fillStyle = 'rgba(255,255,255,0.03)'; R.fillRect(0,h-120,w,120);
-  // vignette
-  R.globalCompositeOperation = 'overlay';
-  const g = R.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.5)');
-  R.fillStyle = g; R.fillRect(0,0,w,h); R.globalCompositeOperation = 'source-over';
-
-  // mirror heartbeat effect if chasing
-  if(cameraX - game.mirror.x < 420){
-    const alpha = 0.06 + Math.max(0, (420 - (cameraX - game.mirror.x))/420)*0.2;
-    R.fillStyle = `rgba(255,40,60,${alpha})`; R.fillRect(0,0,w,h);
-  }
-
-  // draw a subtle bar showing mirror distance
-  R.fillStyle = '#fff'; R.font = '12px system-ui';
-  const dist = Math.max(0, Math.floor((cameraX - game.mirror.x)/10));
-  R.fillText(`Mirror distance: ${dist}`, 12, 18);
-}
-
-/* Lerp util */
-function lerp(a,b,t){ return a + (b-a)*t; }
-
-/* Start/stop & overlay */
-function showOverlay(title, text){
-  document.getElementById('panelTitle').textContent = title;
-  document.getElementById('panelText').textContent = text;
-  overlay.classList.add('show');
-}
-resumeBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); if(!game.running) resetGame(); else game.paused=false; });
-restartBtn.addEventListener('click', ()=>{ overlay.classList.remove('show'); resetGame(); });
-
-window.addEventListener('keydown', e=>{ if(e.key === 'p' || e.key === 'Escape') { game.paused = !game.paused; overlay.classList.toggle('show', game.paused); } });
-
-/* Reset / new run */
-function resetGame(){
-  game = { running:true, paused:false, time:0, score:0, wave:1, hp:3, light:100, player:makePlayer(), mirror:{x: -200, y: 0, speed:1.6, rage:0}, obstacles:[], mirrorOb:[], powerups:[], exit:null, spawnTimer:0, waveTimer:0, waveDuration:20000 };
-  repelCharges = 1;
-  cameraX = 0;
-  last = performance.now();
-  requestAnimationFrame(step);
-}
-
-/* Winning & losing */
-function endRun(){ game.running=false; showOverlay('Game Over', `You were caught. Score: ${Math.floor(game.score)}. Best: ${best}`); if(game.score > best){ best = Math.floor(game.score); localStorage.setItem(STORAGE_KEY,String(best)); }}
-
-/* Apply boost timer tick in main loop: shorten/affect camera speed */
-setInterval(()=>{ if(!game.running) return; if(boostTimer>0){ boostTimer -= 100; } }, 100);
-
-/* initial seeds */
-for(let i=0;i<3;i++){ spawnObstacle(); if(Math.random()<0.4) spawnPowerup(); }
-last = performance.now();
-requestAnimationFrame(step);
-
-/* small helpers: play audio on gesture */
-document.body.addEventListener('pointerdown', function initAudio(){
-  try{ if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); else ensureAudio(); }catch(e){}
-  document.body.removeEventListener('pointerdown', initAudio);
+/* ---------- Gamepad API ---------- */
+window.addEventListener("gamepadconnected", (e) => {
+  gpIndex = e.gamepad.index;
+  console.log("Gamepad connected:", e.gamepad.id);
+});
+window.addEventListener("gamepaddisconnected", (e) => {
+  if (gpIndex === e.gamepad.index) gpIndex = null;
+  console.log("Gamepad disconnected.");
 });
 
-/* show instructions on load briefly */
-showOverlay('Welcome to MirrorFall', 'Run, jump, and use your flashlight. Survive waves and escape when the Exit Gate appears. Tap Resume to start.');
+function pollGamepad() {
+  if (gpIndex === null) return null;
+  const gp = navigator.getGamepads()[gpIndex];
+  if (!gp) return null;
+  // Typical mapping: button 0 = A (jump), 1 = B (dash)
+  // left stick axis 0 (-1 left, +1 right)
+  return gp;
+}
+
+/* ---------- World generation: obstacles & pickups ---------- */
+let spawnTimer = 0;
+let pickupTimer = 0;
+function maybeSpawn(dt){
+  spawnTimer += dt;
+  pickupTimer += dt;
+  const rate = Math.max(0.3, OBSTACLE_SPAWN_RATE - difficulty*0.02);
+  if (spawnTimer > 1/rate){
+    spawnTimer = 0;
+    spawnObstacle();
+  }
+  if (pickupTimer > 1/PICKUP_SPAWN_RATE){
+    pickupTimer = 0;
+    if (Math.random() < 0.6) spawnPickup();
+  }
+}
+
+function spawnObstacle(){
+  const obstacle = {
+    x: W + 60,
+    y: H - 140,
+    w: randInt(28, 72),
+    h: randInt(28, 84),
+    type: 'block',
+    speedFactor: 1 + difficulty*0.01 + Math.random()*0.6
+  };
+  // small chance for ground hole
+  if (Math.random() < 0.12){
+    obstacle.type = 'low';
+    obstacle.h = 30;
+  }
+  obstacles.push(obstacle);
+}
+
+function spawnPickup(){
+  const p = {
+    x: W + 60,
+    y: H - 240 - Math.random()*120,
+    r: 12,
+    kind: Math.random() < 0.6 ? 'score' : 'boost',
+    speedFactor: 1
+  };
+  pickups.push(p);
+}
+
+/* ---------- Collision helpers ---------- */
+function rectsOverlap(a,b){
+  return a.x < b.x + b.w &&
+         a.x + a.w > b.x &&
+         a.y < b.y + b.h &&
+         a.y + a.h > b.y;
+}
+
+/* ---------- Flashlight mechanic ----------
+   Flashlight slows or briefly stuns mirror when applied (gently).
+   Held by 'F' key or left touch hold. */
+function useFlashlight(dt){
+  if (player.flashlightActive && player.flashlightCharge > 0){
+    player.flashlightCharge = Math.max(0, player.flashlightCharge - dt*0.7);
+    mirror.speed = Math.max(1.6, mirror.speed - dt*1.2);
+    mirror.anger = Math.max(0, mirror.anger - dt*0.1);
+  } else {
+    // recharge over time
+    player.flashlightCharge = Math.min(1, player.flashlightCharge + dt*0.22);
+  }
+}
+
+/* ---------- Update ---------- */
+function update(dt){
+  if (!running || paused) return;
+
+  // time
+  timeElapsed += dt;
+  difficulty = Math.min(100, timeElapsed * 0.03);
+  score = Math.floor(timeElapsed * 10 + (mirror.x < 60 ? 0 : 0)); // base scoring on time
+  uiScore.textContent = 'Score: ' + score;
+
+  // Input mapping
+  const gp = pollGamepad();
+  let gpJump = false, gpDash = false;
+  if (gp){
+    gpJump = gp.buttons[0].pressed;
+    gpDash = gp.buttons[1].pressed;
+    // axes left-right to strafe? we don't move horizontally; we could use for dodge later
+  }
+  // Jump: space, arrowUp, keyW, 'KeyA'? Use ArrowUp/Space/W or left touch quick tap
+  const jumpPressed = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touches.left || gpJump;
+  const dashPressed = keys['KeyF'] || keys['ShiftLeft'] || touches.right || gpDash || keys['KeyD'] || keys['ArrowRight'];
+
+  // Flashlight when holding 'KeyF' or long-press left touch
+  player.flashlightActive = keys['KeyF'] || (touches.left && player.grounded === true && player.vy === 0 && false); // mostly avoid accidental hold
+  // Also treat holding 'KeyF' or Gamepad left trigger? For now mapped to KeyF
+
+  // Jump logic - allow jump on press, not hold (simple)
+  if (jumpPressed && player.grounded){
+    player.vy = player.jumpPower;
+    player.grounded = false;
+    // small boost if dash pressed simultaneously
+    if (dashPressed && player.dashCooldown <= 0) {
+      player.dashTime = 0.28;
+      player.dashCooldown = player.maxDashCooldown;
+    }
+  }
+
+  // Dash logic
+  if (dashPressed && player.dashCooldown <= 0){
+    player.dashTime = 0.28;
+    player.dashCooldown = player.maxDashCooldown;
+  }
+
+  if (player.dashTime > 0){
+    player.dashTime -= dt;
+  } else {
+    // cooldown reduction
+    player.dashCooldown = Math.max(0, player.dashCooldown - dt);
+  }
+
+  // Gravity
+  player.vy += GRAV;
+  player.y += player.vy;
+
+  // Ground
+  const groundY = H - 120;
+  player.baseY = groundY - player.h;
+  if (player.y >= player.baseY){
+    player.y = player.baseY;
+    player.vy = 0;
+    player.grounded = true;
+  }
+
+  // If dashing, increase world scroll temporarily
+  let effectiveSpeed = speed + (player.dashTime > 0 ? 6 : 0) + (difficulty * 0.01);
+  effectiveSpeed = Math.min(MAX_OBSTACLE_SPEED, effectiveSpeed);
+
+  // Move obstacles & pickups left
+  for (let i=obstacles.length-1; i>=0; i--){
+    const ob = obstacles[i];
+    ob.x -= effectiveSpeed * ob.speedFactor * dt * 60 / 16;
+    if (ob.x + ob.w < -100) obstacles.splice(i,1);
+  }
+  for (let i=pickups.length-1; i>=0; i--){
+    const p = pickups[i];
+    p.x -= effectiveSpeed * p.speedFactor * dt * 60 / 16;
+    if (p.x < -80) pickups.splice(i,1);
+  }
+
+  // Mirror movement: mirror slowly chases; gets faster when player uses dash or is ahead
+  mirror.x += (mirror.speed + difficulty*0.007) * dt * 60 / 16;
+  // Mirror reacts if player uses flashlight
+  if (player.flashlightActive && player.flashlightCharge > 0){
+    mirror.speed = Math.max(1.8, mirror.speed - 0.035);
+  } else {
+    mirror.speed = Math.min(8.5, mirror.speed + 0.02 + difficulty*0.001);
+  }
+
+  // Mirror angriness increases as it gets closer
+  const distance = player.x - mirror.x;
+  mirror.anger = Math.min(1, Math.max(0, 1 - (distance - 40)/420));
+
+  // Collision with obstacles
+  for (let ob of obstacles){
+    const blox = {x: ob.x, y: ob.y, w: ob.w, h: ob.h};
+    const ply = {x: player.x, y: player.y, w: player.w, h: player.h};
+    if (rectsOverlap(blox, ply)){
+      // collision — knock player backward and slow speed, add penalty to mirror approach
+      // If the player was dashing, they may break through some obstacles
+      if (player.dashTime > 0 && ob.w < 80){
+        // break obstacle
+        ob.h = Math.max(12, ob.h - 20);
+        // spawn bits (not implemented)
+      } else {
+        // penalty: reduce player's dash and push mirror closer (makes things scarier)
+        player.vy = -6; // small knockback jump
+        player.grounded = false;
+        mirror.x += 10;
+        score = Math.max(0, score - 18);
+      }
+    }
+  }
+
+  // Pickup collisions
+  for (let i=pickups.length-1;i>=0;i--){
+    const p = pickups[i];
+    const ply = {x: player.x, y: player.y, w: player.w, h: player.h};
+    const pr = {x: p.x - p.r, y: p.y - p.r, w: p.r*2, h: p.r*2};
+    if (rectsOverlap(ply, pr)){
+      if (p.kind === 'score') score += 120;
+      else if (p.kind === 'boost'){ player.dashCooldown = 0; player.dashTime = 0.5; player.flashlightCharge = Math.min(1, player.flashlightCharge + 0.35); }
+      pickups.splice(i,1);
+    }
+  }
+
+  // Flashlight usage
+  // Allow left touch hold for flashlight. For simplicity: if left touch is held >0.4s AND not just tapped, treat as flashlight
+  useFlashlight(dt);
+
+  // Frequent small increase of mirror closeness if player is slow
+  if (player.dashTime <= 0 && player.grounded && Math.abs(player.vy) < 0.1){
+    // nothing
+  }
+
+  // Mirror catching check
+  if (mirror.x + 40 >= player.x - 6){
+    // Jumpscare / game over
+    gameOver(true);
+    return;
+  }
+
+  // Spawn
+  maybeSpawn(dt);
+}
+
+/* ---------- Draw ---------- */
+function drawHUD(){
+  // flashlight bar
+  const barW = 140, barH = 10;
+  ctx.save();
+  ctx.translate(12,12);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(0,0,barW,barH);
+  ctx.fillStyle = '#ffd54f';
+  ctx.fillRect(0,0, barW * player.flashlightCharge, barH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.strokeRect(0,0,barW,barH);
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Flashlight', 0, -6);
+  ctx.restore();
+}
+
+function drawScene(){
+  // clear
+  ctx.fillStyle = '#030306';
+  ctx.fillRect(0,0,W,H);
+
+  // parallax background (dark shapes)
+  // draw faint tilted ground grid
+  ctx.save();
+  for (let i=0;i<12;i++){
+    ctx.fillStyle = `rgba(255,255,255,${0.01 + i*0.01})`;
+    ctx.fillRect((i*120 + (timeElapsed*8 % 120)) % (W+200) - 100, H-110, 80, 2);
+  }
+  ctx.restore();
+
+  // ground
+  ctx.fillStyle = '#0b0b0d';
+  ctx.fillRect(0, H-120, W, 120);
+
+  // obstacles
+  for (let ob of obstacles){
+    ctx.fillStyle = '#2b2b33';
+    ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+    // highlight edge
+    ctx.strokeStyle = '#101019';
+    ctx.strokeRect(ob.x, ob.y, ob.w, ob.h);
+  }
+
+  // pickups
+  for (let p of pickups){
+    if (p.kind === 'score'){
+      ctx.fillStyle = '#8ef';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#ff9';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // heartbeat/fog effects for horror mood
+  const fogAlpha = 0.08 + 0.05*Math.sin(timeElapsed*2.2);
+  ctx.fillStyle = 'rgba(4,4,6,'+fogAlpha+')';
+  ctx.fillRect(0,0,W,H-60);
+
+  // flashlight cone: draw radial gradient in front of player
+  if (player.flashlightCharge > 0 || player.flashlightActive){
+    const g = ctx.createRadialGradient(player.x + 12, player.y + 12, 10, player.x + 360, player.y - 120, 420);
+    g.addColorStop(0, 'rgba(255,255,200,0.95)');
+    g.addColorStop(0.2, 'rgba(255,255,200,0.22)');
+    g.addColorStop(0.6, 'rgba(20,20,24,0.04)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(player.x + 260, player.y - 80, 420, 240, -0.18, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // player draw (simple stickman)
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(player.x - 4, player.y + player.h + 4, player.w + 8, 6);
+
+  // body
+  ctx.fillStyle = '#dfe2e6';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  // head
+  ctx.beginPath();
+  ctx.fillStyle = '#fff';
+  ctx.arc(player.x + player.w/2, player.y - 10, 14, 0, Math.PI*2);
+  ctx.fill();
+
+  // flashlight handle
+  ctx.fillStyle = '#202020';
+  ctx.fillRect(player.x + player.w, player.y + player.h/3, 18, 8);
+  ctx.restore();
+
+  // mirror (pursuer) - partly transparent with red eyes
+  ctx.save();
+  const mirrorScreenX = mirror.x;
+  const mirrorAlpha = 0.5 + mirror.anger*0.5;
+  ctx.globalAlpha = mirrorAlpha;
+  ctx.fillStyle = '#111027';
+  ctx.fillRect(mirrorScreenX, player.baseY, player.w, player.h);
+  // head
+  ctx.beginPath();
+  ctx.fillStyle = '#0b0b0b';
+  ctx.arc(mirrorScreenX + player.w/2, player.baseY - 10, 14, 0, Math.PI*2);
+  ctx.fill();
+  // eyes (red)
+  ctx.fillStyle = `rgba(255,${Math.floor(60 + mirror.anger*195)},60)`;
+  ctx.fillRect(mirrorScreenX + 6, player.baseY - 14, 6, 4);
+  ctx.fillRect(mirrorScreenX + 16, player.baseY - 14, 6, 4);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // small UI
+  drawHUD();
+
+  // Remainder: screen vignette for mood
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.8, 'rgba(0,0,0,0.25)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+}
+
+/* ---------- Gameover / Jumpscare ---------- */
+function gameOver(isCaught){
+  running = false;
+  if (isCaught){
+    // show jumpscare full-screen flash with sound
+    jumpscareEl.style.display = 'flex';
+    setTimeout(()=>{ jumpscareEl.style.display = 'none'; showOverlayEnd(); }, 1800);
+    // optional sound
+  } else {
+    showOverlayEnd();
+  }
+}
+
+function showOverlayEnd(){
+  overlay.style.display = 'flex';
+  const panel = document.getElementById('panel');
+  panel.innerHTML = `
+    <h1>MirrorFall</h1>
+    <p style="margin:6px 0 0 0">Run ended. Score: <strong>${score}</strong></p>
+    <p style="font-size:13px;opacity:0.9;margin-top:8px">The mirror learns each run. Try again — it remembers.</p>
+    <div style="margin-top:12px">
+      <button id="startBtn2">Try Again</button>
+      <button id="shareBtn" style="margin-left:8px;background:#444;padding:8px 12px;border-radius:8px;border:0;color:#fff">Share</button>
+    </div>
+  `;
+  document.getElementById('startBtn2').onclick = ()=>{ panel.innerHTML = ''; panel.appendChild(startBtn); overlay.style.display='none'; startGame(); };
+  document.getElementById('shareBtn').onclick = ()=>{ try{ navigator.share ? navigator.share({title:'MirrorFall Score', text:'I scored '+score+' in MirrorFall!'}) : alert('Share this score: '+score); }catch(e){ alert('Share not supported on this device.'); } };
+}
+
+/* ---------- Main loop ---------- */
+function loop(ts){
+  if (!lastTimestamp) lastTimestamp = ts;
+  const dt = Math.min(0.033, (ts - lastTimestamp) / 1000); // clamp dt
+  lastTimestamp = ts;
+
+  if (running && !paused){
+    update(dt);
+    drawScene();
+    requestAnimationFrame(loop);
+  } else {
+    // If paused, still draw once
+    if (running) drawScene();
+  }
+}
+
+/* ---------- Initial placement ---------- */
+player.x = 180;
+player.y = H - 120 - player.h;
+player.baseY = player.y;
+
+/* ---------- Simple autoplay demo if user doesn't start (not running) ---------- */
+// optional: show ambient animation
+(function ambientAnim(){
+  let t0 = performance.now();
+  function anim(ts){
+    const dt = (ts - t0)/1000;
+    t0 = ts;
+    // slow simple animate mirror left-right if idle
+    if (!running){
+      // tiny breathing background
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,W,H);
+      // draw faint title
+      ctx.fillStyle = '#fff';
+      ctx.font = '48px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('MirrorFall', W/2, H/2 - 60);
+    }
+    requestAnimationFrame(anim);
+  }
+  requestAnimationFrame(anim);
+})();
+
+/* ---------- Portrait warning helper ---------- */
+function checkOrientation(){
+  const portraitWarning = document.getElementById('portraitWarning');
+  if (window.innerHeight > window.innerWidth) {
+    portraitWarning.style.display = 'flex';
+  } else portraitWarning.style.display = 'none';
+}
+window.addEventListener('resize', checkOrientation);
+checkOrientation();
+
+/* ---------- Initialize audio placeholders (add your files) ---------- */
+/* Example audio usage:
+const sJump = new Audio('sfx/jump.wav');
+sJump.volume = 0.5;
+sJump.play();
+*/
+// We'll not forceplay audio to avoid autoplay blocking.
+
+/* ---------- End of file ---------- */
 </script>
+
 </body>
 </html>
