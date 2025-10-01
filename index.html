@@ -2,171 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>MirrorFall</title>
-
-<!-- iOS Web App Meta (for "Add to Home Screen" look) -->
-<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="MirrorFall">
-
-<!-- Manifest (optional, good for PWA) -->
-<link rel="manifest" href="manifest.json">
-
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>MirrorFall — Side Scroller</title>
 <style>
-  /* Landscape-first, centered canvas */
-  html,body{
-    height:100%;
-    margin:0;
-    background:#000;
-    color:#fff;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    -webkit-user-select:none;
-    user-select:none;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-    overflow:hidden;
-  }
-
-  #gameWrap{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    height:100%;
-    width:100%;
-    box-sizing:border-box;
-    padding:10px;
-  }
-
-  canvas#game {
-    background: linear-gradient(#050507, #0b0b0f 60%);
-    width:100%;
-    height:100%;
-    max-height:100vh;
-    max-width:1600px;
-    image-rendering: optimizeSpeed;
-    border-radius:8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.8);
-    display:block;
-  }
-
-  /* UI overlays */
-  #ui {
-    position: absolute;
-    left:12px;
-    top:12px;
-    z-index:20;
-    pointer-events:none;
-  }
-  #score {
-    font-size:18px;
-    font-weight:600;
-    text-shadow:0 2px 8px rgba(0,0,0,0.8);
-  }
-  #controlsHint {
-    position: absolute;
-    right:12px;
-    top:12px;
-    pointer-events:none;
-    font-size:14px;
-    opacity:0.85;
-  }
-
-  /* Virtual touch controls for mobile (large, translucent) */
-  .touchbtn {
-    position: absolute;
-    bottom:22px;
-    width:38%;
-    height:32%;
-    border-radius:12px;
-    pointer-events:auto;
-    opacity:0.02; /* nearly invisible but receives touches */
-    -webkit-user-select:none;
-  }
-  .leftTouch { left:6px; }
-  .rightTouch { right:6px; }
-
-  /* Visible virtual buttons for desktop testing (toggle with ? key) */
-  .visBtn {
-    position: absolute;
-    bottom:18px;
-    width:120px;
-    height:48px;
-    background:rgba(255,255,255,0.06);
-    color:#fff;
-    border-radius:8px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:700;
-    letter-spacing:1px;
-    pointer-events:none;
-  }
-  #jumpBtn { left:18px; }
-  #dashBtn { right:18px; }
-
-  /* Simple instructions center */
-  #overlay {
-    position:absolute;
-    z-index:30;
-    left:0; right:0; top:0; bottom:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-  }
-  #overlay .panel{
-    max-width:780px;
-    text-align:center;
-    background:linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));
-    border-radius:12px;
-    padding:18px 26px;
-    box-shadow: 0 6px 30px rgba(0,0,0,0.7);
-    pointer-events:auto;
-  }
-  button#startBtn {
-    margin-top:12px;
-    font-size:18px;
-    padding:10px 18px;
-    border-radius:8px;
-    border:0;
-    background:#ff2f5a;
-    color:white;
-    font-weight:700;
-  }
-
-  /* Jumpscare full-screen flash */
-  #jumpscare {
-    position: absolute;
-    inset:0;
-    background:#000;
-    z-index:999;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-size:48px;
-    font-weight:900;
-    text-shadow: 0 6px 40px #ff2f5a;
-  }
-
-  @media (orientation:portrait) {
-    /* Tell user to rotate */
-    #portraitWarning {
-      position: absolute;
-      inset:0;
-      z-index:200;
-      background:linear-gradient(0deg, rgba(0,0,0,0.85), rgba(0,0,0,0.9));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:20px;
-      color:#fff;
-      font-size:20px;
-      pointer-events:none;
-    }
-  }
+  html,body{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;overflow:hidden;-webkit-user-select:none;user-select:none;}
+  #gameWrap{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box;}
+  canvas#game{background:#000;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.8);display:block;max-width:1600px;width:100%;height:100%;}
+  #ui{position:absolute;left:12px;top:12px;z-index:40;pointer-events:none}
+  #score{font-size:18px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.7)}
+  #controlsHint{position:absolute;right:12px;top:12px;pointer-events:none;font-size:13px;opacity:0.85}
+  /* Invisible touch areas */
+  .touchbtn{position:absolute;bottom:18px;width:48%;height:36%;border-radius:12px;opacity:0.02;pointer-events:auto}
+  .leftTouch{left:6px}
+  .rightTouch{right:6px}
+  /* Overlay/panels */
+  #overlay{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .panel{max-width:820px;background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.8));padding:18px;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.7);text-align:center;pointer-events:auto}
+  button{cursor:pointer}
+  button#startBtn{margin-top:12px;font-size:18px;padding:10px 18px;border-radius:10px;border:0;background:#e53935;color:white;font-weight:700}
+  #jumpscareOverlay{position:absolute;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:#000}
+  #jumpscareOverlay .msg{color:#fff;font-size:36px;font-weight:900;text-shadow:0 10px 40px #f44336;transform:translateY(0)}
+  #portraitWarning{position:absolute;inset:0;z-index:120;background:linear-gradient(0deg, rgba(0,0,0,0.92), rgba(0,0,0,0.96));display:none;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:20px}
+  #warningSmall{font-size:12px;opacity:0.9;margin-top:8px}
+  /* visible debug buttons */
+  .visBtn{position:absolute;bottom:18px;width:120px;height:44px;background:rgba(255,255,255,0.06);color:#fff;border-radius:8px;display:none;align-items:center;justify-content:center;font-weight:700;pointer-events:none}
+  #jumpBtn{left:18px} #runBtn{right:18px}
 </style>
 </head>
 <body>
@@ -175,633 +35,837 @@
 
   <div id="ui">
     <div id="score">Score: 0</div>
+    <div id="level" style="font-size:13px;opacity:0.9;margin-top:6px">Level: 1</div>
   </div>
-  <div id="controlsHint">
-    Controls: ← → / A D or tap left/right. Controller supported (A jump, B dash). Press ? for help.
-  </div>
+  <div id="controlsHint">Controls: Hold F (or left half) = flashlight. Hold Space (or right half) to run — release to jump. Gamepad: dpad-left flashlight, dpad-right run/jump.</div>
 
-  <!-- Invisible touch areas -->
-  <div class="touchbtn leftTouch" id="leftTouch"></div>
-  <div class="touchbtn rightTouch" id="rightTouch"></div>
-
-  <!-- Visible debug buttons -->
-  <div id="jumpBtn" class="visBtn" style="display:none;">JUMP</div>
-  <div id="dashBtn" class="visBtn" style="display:none;">DASH</div>
+  <div class="touchbtn leftTouch" id="leftTouch" aria-hidden="true"></div>
+  <div class="touchbtn rightTouch" id="rightTouch" aria-hidden="true"></div>
 
   <div id="overlay">
     <div class="panel" id="panel">
       <h1 style="margin:0;letter-spacing:2px">MirrorFall</h1>
-      <p style="margin:6px 0 0 0">You are being chased by your mirror self. You have a flashlight. Run. Survive as long as you can.</p>
-      <p style="margin:8px 0 0 0; font-size:13px; opacity:0.9">
-        Quick play: tap or press A to jump, B or right-tap to dash (short speed burst). Flashlight (F or touch-hold left) stuns mirror briefly.
-      </p>
-      <div style="margin-top:12px;">
-        <button id="startBtn">Start Run</button>
+      <p style="margin:8px 0 0 0">Dark side-scroller. You have a weak flashlight — hold it to see and slow the mirror monsters. Release and they blitz toward you.</p>
+      <div id="warningArea" style="margin-top:12px;text-align:left">
+        <strong>WARNING:</strong>
+        <ul style="text-align:left;margin:6px 0 0 18px 18px;font-size:13px">
+          <li>Contains darkness, flashing & jumpscare imagery.</li>
+          <li>May trigger photosensitive epilepsy — play with caution.</li>
+          <li>Jumpscare & loud audio possible.</li>
+        </ul>
       </div>
-      <p style="font-size:12px;margin-top:8px;opacity:0.8">Pro tip: staying near the center gives better reaction space — but the Mirror learns.</p>
+      <div style="margin-top:8px">
+        <button id="startBtn">Start Game</button>
+      </div>
+      <p id="warningSmall">Progress is saved at checkpoints in your browser.</p>
     </div>
   </div>
 
-  <div id="jumpscare">THE MIRROR TOOK YOU</div>
+  <div id="jumpscareOverlay"><div class="msg" id="jumpscareMsg">THE MIRROR TOOK YOU</div></div>
   <div id="portraitWarning" style="display:none">Rotate device to landscape for best experience.</div>
+
+  <div id="jumpBtn" class="visBtn">JUMP</div>
+  <div id="runBtn" class="visBtn">RUN</div>
 </div>
 
 <script>
-/* MirrorFall — core variables and game loop
-   Single-file engine using canvas.
-   Controls: keyboard, touch (left/right halves), gamepad support.
+/* MirrorFall — FULL rewrite for side scroller
+   Mechanics:
+   - Hold left (F / dpad-left / left touch) => flashlight on (slows monsters).
+   - Hold right (Space / dpad-right / right touch) => run; releasing triggers a single jump.
+   - Monsters: some chase from behind, some patrol ahead (ground enemies) to jump over.
+   - Mirrors: platforms/gates to jump-through to reach checkpoint (saves level).
+   - Trick mirrors from level >= 7: some are fake and cause fall (fail).
+   - Checkpoints persist to localStorage.
 */
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d');
 let W = canvas.width, H = canvas.height;
 
-// Scaling to device pixel ratio for crisp canvas
-function resizeCanvas() {
+function resizeCanvas(){
   const ratio = window.devicePixelRatio || 1;
-  // maintain 16:9 landscape when possible
-  const wrap = document.getElementById('gameWrap');
-  const maxW = Math.min(window.innerWidth - 20, 1600);
-  const maxH = Math.min(window.innerHeight - 20, 900);
-  // Fit into view preserving aspect ratio
+  const wrapW = Math.min(window.innerWidth - 20, 1600);
+  const wrapH = Math.min(window.innerHeight - 20, 900);
   const targetRatio = 16/9;
-  let cw = maxW, ch = Math.round(cw / targetRatio);
-  if (ch > maxH) { ch = maxH; cw = Math.round(ch * targetRatio); }
+  let cw = wrapW, ch = Math.round(cw / targetRatio);
+  if (ch > wrapH) { ch = wrapH; cw = Math.round(ch * targetRatio); }
   canvas.style.width = cw + 'px';
   canvas.style.height = ch + 'px';
   W = canvas.width = Math.round(cw * ratio);
   H = canvas.height = Math.round(ch * ratio);
-  ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // scale drawing commands
+  ctx.setTransform(ratio,0,0,ratio,0,0);
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Game state
+/* ---------- Game state ---------- */
 let running = false;
 let paused = false;
+let lastTS = 0;
 let score = 0;
-let speed = 4;       // world scroll speed
-let timeElapsed = 0;
-let difficulty = 0;  // increases with time
-let lastTimestamp = 0;
-
-// Player
-const player = {
-  x: 180, y: 0, w: 28, h: 56,
-  vy: 0,
-  grounded: false,
-  baseY: 0,
-  jumpPower: -12,
-  dashTime: 0,
-  dashCooldown: 0,
-  maxDashCooldown: 0.8,
-  flashlightCharge: 1.0,
-  flashlightActive: false
-};
-
-// Mirror (pursuer)
-const mirror = {
-  x: 40,
-  speed: 3.2,
-  anger: 0 // affects aggressiveness & jumpscare chance
-};
-
-// Obstacles and pickups
-let obstacles = [];
-let pickups = [];
-
-// Config / tuning
-const GRAV = 0.6;
-const OBSTACLE_SPAWN_RATE = 1.0; // per second baseline
-const PICKUP_SPAWN_RATE = 0.12;
-const MIN_GAP = 220;
-const MAX_GAP = 520;
-const MAX_OBSTACLE_SPEED = 12;
-
-// Visual flash (jumpscare) control
-const jumpscareEl = document.getElementById('jumpscare');
-
+let level = Number(localStorage.getItem('mirrorfall.level') || 1); // saved checkpoint level
+let levelProgress = 0;  // progress toward next mirror
 const uiScore = document.getElementById('score');
-const overlay = document.getElementById('overlay');
-const startBtn = document.getElementById('startBtn');
-startBtn.onclick = startGame;
+const uiLevel = document.getElementById('level');
+uiLevel.textContent = 'Level: ' + level;
 
-// Input state
+/* ---------- Player ---------- */
+const player = {
+  x: 180,
+  y: 0,
+  w: 28, h: 56,
+  vy: 0,
+  grounded: true,
+  baseY: 0,
+  jumpPower: -14,
+  gravity: 0.8,
+  runningHold: false, // hold to run
+  canJump: true,      // release triggers a single jump if was holding
+  flashlightHold: false, // hold flashlight
+  flashlightEnergy: 1.0,
+  flashlightOn: false
+};
+
+/* ---------- World ---------- */
+let worldSpeed = 3.2;        // base automatic forward motion
+let scroll = 0;              // world scroll offset used to place obstacles
+let obstacles = [];          // ground obstacles (to jump over)
+let mirrors = [];            // mirrors (gates to jump through)
+let monsters = [];           // chasing monsters behind & some ahead patrolers
+let spawnTimer = 0;
+let mirrorSpawnTimer = 0;
+let difficultyFactor = 1.0;
+
+/* ---------- Tuning constants (feel free to change) ---------- */
+const BASE_SCROLL = 3.2;
+const MAX_MONSTER_SPEED = 14;
+const FLASHLIGHT_DRAIN = 0.8;    // per second when on
+const FLASHLIGHT_RECHARGE = 0.28;// per second when off
+const MONSTER_SLOW_MULT = 0.28;  // monsters slow to this multiplier when flashlight on
+const MONSTER_FAST_MULT = 2.8;   // when flashlight off they speed up this factor (danger)
+const MIRROR_INTERVAL_BASE = 1200; // world units between mirrors baseline
+const MIN_MIRROR_INTERVAL = 700;
+const OBSTACLE_INTERVAL = 420;
+const MONSTER_SPAWN_INTERVAL = 1800; // spawn behind monsters
+const LEVEL_INTENSIFY = 1.08; // scale per level
+
+/* ---------- Input state ---------- */
 const keys = {};
-const touches = { left:false, right:false };
-let showVisibleBtns = false;
-
-// Gamepad
 let gpIndex = null;
-let lastGamepadTimestamp = 0;
 
-/* ---------- Utility functions ---------- */
+/* ---------- UI elements ---------- */
+const overlay = document.getElementById('overlay');
+const panel = document.getElementById('panel');
+const startBtn = document.getElementById('startBtn');
+const leftTouch = document.getElementById('leftTouch');
+const rightTouch = document.getElementById('rightTouch');
+const jumpscareOverlay = document.getElementById('jumpscareOverlay');
+const drops = []; // visual particles (optional)
+
+/* ---------- Helpers ---------- */
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function randInt(min,max){ return Math.floor(rand(min,max+1)); }
 
-/* ---------- Start / Reset ---------- */
+/* ---------- Setup initial placement ---------- */
+player.baseY = H - 120 - player.h;
+player.y = player.baseY;
+
+/* ---------- Start/Reset ---------- */
 function startGame(){
   overlay.style.display = 'none';
   running = true;
   paused = false;
+  lastTS = performance.now();
   score = 0;
-  timeElapsed = 0;
-  speed = 4;
-  difficulty = 0;
-  lastTimestamp = performance.now();
+  levelProgress = 0;
+  worldSpeed = BASE_SCROLL * Math.pow(LEVEL_INTENSIFY, level-1);
   obstacles = [];
-  pickups = [];
-  player.vy = 0;
-  player.grounded = true;
-  player.dashTime = 0;
-  player.dashCooldown = 0;
-  player.flashlightCharge = 1.0;
-  player.flashlightActive = false;
-  mirror.x = 40;
-  mirror.speed = 3.2;
-  mirror.anger = 0;
+  mirrors = [];
+  monsters = [];
+  spawnTimer = 0;
+  mirrorSpawnTimer = 0;
+  // pre-populate some world content
+  for (let i=1;i<=5;i++){
+    spawnObstacleAt(W + i*rand(OBSTACLE_INTERVAL*0.6, OBSTACLE_INTERVAL*1.6));
+  }
+  for (let i=1;i<=2;i++){
+    spawnMirrorAt(W + i*(MIRROR_INTERVAL_BASE - level*30));
+  }
+  // spawn initial monsters (some behind, some ahead sometimes)
+  spawnMonsterBehind(-300 - rand(0,600));
   requestAnimationFrame(loop);
 }
 
-/* ---------- Input handlers ---------- */
+/* ---------- Input handling ---------- */
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.key === '?') toggleHelp();
-  if (e.key === 'p') paused = !paused;
-  // Prevent scrolling on space etc
-  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'KeyP') paused = !paused;
+  // Prevent default for space so page doesn't scroll
+  if (e.code === 'Space') e.preventDefault();
 });
-window.addEventListener('keyup', e => { keys[e.code] = false; });
-
-function toggleHelp() {
-  showVisibleBtns = !showVisibleBtns;
-  document.querySelectorAll('.visBtn').forEach(el=>el.style.display = showVisibleBtns ? 'flex' : 'none');
-}
-
-// Touch handlers: left area = jump/flashlight, right area = dash
-const leftTouch = document.getElementById('leftTouch');
-const rightTouch = document.getElementById('rightTouch');
-
-leftTouch.addEventListener('touchstart', e => { touches.left = true; e.preventDefault(); });
-leftTouch.addEventListener('touchend', e => { touches.left = false; e.preventDefault(); });
-
-rightTouch.addEventListener('touchstart', e => { touches.right = true; e.preventDefault(); });
-rightTouch.addEventListener('touchend', e => { touches.right = false; e.preventDefault(); });
-
-/* ---------- Gamepad API ---------- */
-window.addEventListener("gamepadconnected", (e) => {
-  gpIndex = e.gamepad.index;
-  console.log("Gamepad connected:", e.gamepad.id);
-});
-window.addEventListener("gamepaddisconnected", (e) => {
-  if (gpIndex === e.gamepad.index) gpIndex = null;
-  console.log("Gamepad disconnected.");
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
 });
 
-function pollGamepad() {
+leftTouch.addEventListener('touchstart', e => { player.flashlightHold = true; e.preventDefault(); });
+leftTouch.addEventListener('touchend', e => { player.flashlightHold = false; e.preventDefault(); });
+
+rightTouch.addEventListener('touchstart', e => { // start holding run
+  player.runningHold = true;
+  // when you begin a hold, allow jump on release
+  player.canJump = true;
+  e.preventDefault();
+});
+rightTouch.addEventListener('touchend', e => { // on release -> jump once if allowed
+  if (player.runningHold && player.canJump && player.grounded){
+    doPlayerJump();
+  }
+  player.runningHold = false;
+  player.canJump = false;
+  e.preventDefault();
+});
+
+/* ---------- Gamepad ---------- */
+window.addEventListener("gamepadconnected", e=>{ gpIndex = e.gamepad.index; console.log('GP connected', e.gamepad.id); });
+window.addEventListener("gamepaddisconnected", e=>{ if (gpIndex === e.gamepad.index) gpIndex = null; });
+
+function pollGamepad(){
   if (gpIndex === null) return null;
   const gp = navigator.getGamepads()[gpIndex];
   if (!gp) return null;
-  // Typical mapping: button 0 = A (jump), 1 = B (dash)
-  // left stick axis 0 (-1 left, +1 right)
-  return gp;
+  // dpad left = button 14, dpad right = 15 in many mappings; A/B are 0/1
+  const dLeft = gp.buttons[14] && gp.buttons[14].pressed;
+  const dRight = gp.buttons[15] && gp.buttons[15].pressed;
+  return { dLeft, dRight, a: gp.buttons[0] && gp.buttons[0].pressed, b: gp.buttons[1] && gp.buttons[1].pressed };
 }
 
-/* ---------- World generation: obstacles & pickups ---------- */
-let spawnTimer = 0;
-let pickupTimer = 0;
-function maybeSpawn(dt){
-  spawnTimer += dt;
-  pickupTimer += dt;
-  const rate = Math.max(0.3, OBSTACLE_SPAWN_RATE - difficulty*0.02);
-  if (spawnTimer > 1/rate){
-    spawnTimer = 0;
-    spawnObstacle();
-  }
-  if (pickupTimer > 1/PICKUP_SPAWN_RATE){
-    pickupTimer = 0;
-    if (Math.random() < 0.6) spawnPickup();
-  }
+/* ---------- Player jump & physics ---------- */
+function doPlayerJump(){
+  if (!player.grounded) return;
+  player.vy = player.jumpPower;
+  player.grounded = false;
 }
 
-function spawnObstacle(){
-  const obstacle = {
-    x: W + 60,
-    y: H - 140,
-    w: randInt(28, 72),
-    h: randInt(28, 84),
-    type: 'block',
-    speedFactor: 1 + difficulty*0.01 + Math.random()*0.6
-  };
-  // small chance for ground hole
-  if (Math.random() < 0.12){
-    obstacle.type = 'low';
-    obstacle.h = 30;
-  }
-  obstacles.push(obstacle);
-}
-
-function spawnPickup(){
-  const p = {
-    x: W + 60,
-    y: H - 240 - Math.random()*120,
-    r: 12,
-    kind: Math.random() < 0.6 ? 'score' : 'boost',
-    speedFactor: 1
-  };
-  pickups.push(p);
-}
-
-/* ---------- Collision helpers ---------- */
-function rectsOverlap(a,b){
-  return a.x < b.x + b.w &&
-         a.x + a.w > b.x &&
-         a.y < b.y + b.h &&
-         a.y + a.h > b.y;
-}
-
-/* ---------- Flashlight mechanic ----------
-   Flashlight slows or briefly stuns mirror when applied (gently).
-   Held by 'F' key or left touch hold. */
-function useFlashlight(dt){
-  if (player.flashlightActive && player.flashlightCharge > 0){
-    player.flashlightCharge = Math.max(0, player.flashlightCharge - dt*0.7);
-    mirror.speed = Math.max(1.6, mirror.speed - dt*1.2);
-    mirror.anger = Math.max(0, mirror.anger - dt*0.1);
-  } else {
-    // recharge over time
-    player.flashlightCharge = Math.min(1, player.flashlightCharge + dt*0.22);
-  }
-}
-
-/* ---------- Update ---------- */
-function update(dt){
-  if (!running || paused) return;
-
-  // time
-  timeElapsed += dt;
-  difficulty = Math.min(100, timeElapsed * 0.03);
-  score = Math.floor(timeElapsed * 10 + (mirror.x < 60 ? 0 : 0)); // base scoring on time
-  uiScore.textContent = 'Score: ' + score;
-
-  // Input mapping
-  const gp = pollGamepad();
-  let gpJump = false, gpDash = false;
-  if (gp){
-    gpJump = gp.buttons[0].pressed;
-    gpDash = gp.buttons[1].pressed;
-    // axes left-right to strafe? we don't move horizontally; we could use for dodge later
-  }
-  // Jump: space, arrowUp, keyW, 'KeyA'? Use ArrowUp/Space/W or left touch quick tap
-  const jumpPressed = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touches.left || gpJump;
-  const dashPressed = keys['KeyF'] || keys['ShiftLeft'] || touches.right || gpDash || keys['KeyD'] || keys['ArrowRight'];
-
-  // Flashlight when holding 'KeyF' or long-press left touch
-  player.flashlightActive = keys['KeyF'] || (touches.left && player.grounded === true && player.vy === 0 && false); // mostly avoid accidental hold
-  // Also treat holding 'KeyF' or Gamepad left trigger? For now mapped to KeyF
-
-  // Jump logic - allow jump on press, not hold (simple)
-  if (jumpPressed && player.grounded){
-    player.vy = player.jumpPower;
-    player.grounded = false;
-    // small boost if dash pressed simultaneously
-    if (dashPressed && player.dashCooldown <= 0) {
-      player.dashTime = 0.28;
-      player.dashCooldown = player.maxDashCooldown;
-    }
-  }
-
-  // Dash logic
-  if (dashPressed && player.dashCooldown <= 0){
-    player.dashTime = 0.28;
-    player.dashCooldown = player.maxDashCooldown;
-  }
-
-  if (player.dashTime > 0){
-    player.dashTime -= dt;
-  } else {
-    // cooldown reduction
-    player.dashCooldown = Math.max(0, player.dashCooldown - dt);
-  }
-
-  // Gravity
-  player.vy += GRAV;
+function applyPhysics(dt){
+  // gravity
+  player.vy += player.gravity;
   player.y += player.vy;
 
-  // Ground
-  const groundY = H - 120;
-  player.baseY = groundY - player.h;
+  // landing
+  player.baseY = H - 120 - player.h;
   if (player.y >= player.baseY){
     player.y = player.baseY;
     player.vy = 0;
     player.grounded = true;
   }
+}
 
-  // If dashing, increase world scroll temporarily
-  let effectiveSpeed = speed + (player.dashTime > 0 ? 6 : 0) + (difficulty * 0.01);
-  effectiveSpeed = Math.min(MAX_OBSTACLE_SPEED, effectiveSpeed);
+/* ---------- World spawn helpers ---------- */
+function spawnObstacleAt(worldX){
+  const ob = {
+    x: worldX, w: randInt(30,60), h: randInt(28,72),
+    y: H - 120 - randInt(0,12) - randInt(0,0)
+  };
+  obstacles.push(ob);
+}
 
-  // Move obstacles & pickups left
-  for (let i=obstacles.length-1; i>=0; i--){
-    const ob = obstacles[i];
-    ob.x -= effectiveSpeed * ob.speedFactor * dt * 60 / 16;
-    if (ob.x + ob.w < -100) obstacles.splice(i,1);
-  }
-  for (let i=pickups.length-1; i>=0; i--){
-    const p = pickups[i];
-    p.x -= effectiveSpeed * p.speedFactor * dt * 60 / 16;
-    if (p.x < -80) pickups.splice(i,1);
-  }
+function spawnMirrorAt(worldX){
+  // mirror is vertical gate; player must contact it while airborne to 'enter'
+  const isTrick = (level >= 7) && (Math.random() < Math.min(0.22 + (level-7)*0.03, 0.45));
+  const m = {
+    x: worldX,
+    y: H - 120 - 10 - player.h, // bottom aligned
+    w: 80,
+    h: player.h + 32,
+    trick: isTrick,
+    active: true
+  };
+  mirrors.push(m);
+}
 
-  // Mirror movement: mirror slowly chases; gets faster when player uses dash or is ahead
-  mirror.x += (mirror.speed + difficulty*0.007) * dt * 60 / 16;
-  // Mirror reacts if player uses flashlight
-  if (player.flashlightActive && player.flashlightCharge > 0){
-    mirror.speed = Math.max(1.8, mirror.speed - 0.035);
+function spawnMonsterBehind(worldOffsetFromPlayer){
+  // spawn a monster behind (chaser)
+  const m = {
+    x: player.x + worldOffsetFromPlayer, // behind if negative
+    y: player.baseY,
+    w: player.w, h: player.h,
+    baseSpeed: 2.2 + level*0.3 + Math.random()*1.2,
+    speed: 2.2 + level*0.3 + Math.random()*1.2,
+    alive: true,
+    eyesAlpha: rand(0.6,1.0)
+  };
+  monsters.push(m);
+}
+
+function spawnGroundMonsterAt(worldX){
+  // stationary/patrol obstacle on ground that player must jump over
+  const gm = {
+    x: worldX,
+    y: H - 120 - 0 - player.h + 8,
+    w: randInt(26,46),
+    h: player.h - 10,
+    type: 'ground',
+    speedFactor: 1.0
+  };
+  obstacles.push(gm);
+}
+
+/* ---------- Collision helpers ---------- */
+function rectsOverlap(a,b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/* ---------- Flashlight mechanic ---------- */
+function updateFlashlight(dt){
+  // Determine input states
+  const gp = pollGamepad();
+  const gpLeft = gp ? gp.dLeft : false;
+  const gpRight = gp ? gp.dRight : false;
+
+  // Flashlight hold: KeyF, left touch, gpLeft
+  player.flashlightHold = (keys['KeyF'] || player.flashlightHold || gpLeft) ? true : false;
+  // Run hold: Space or right touch or gpRight
+  // Space key is used for run hold. On desktop they wanted hold to run, release to jump.
+  const runKey = keys['Space'] || keys['ArrowRight'] || keys['KeyD'];
+  // If user holds run via keydown we set runningHold true; if they release we trigger jump once
+  // But we should detect keydown->keyup events for space too. We'll implement simple mapping:
+  // If runKey pressed -> runningHold true; if previously true and now released -> attempt jump
+  if (runKey || player.runningHold){ // player.runningHold might be set by touch already
+    // If any run input active, set runningHold true
+    player.runningHold = true;
   } else {
-    mirror.speed = Math.min(8.5, mirror.speed + 0.02 + difficulty*0.001);
+    // No run key; if previously was holding and grounded, release triggers jump
+    if (player.runningHold && player.canJump && player.grounded){
+      doPlayerJump();
+    }
+    player.runningHold = false;
+    player.canJump = false;
   }
 
-  // Mirror angriness increases as it gets closer
-  const distance = player.x - mirror.x;
-  mirror.anger = Math.min(1, Math.max(0, 1 - (distance - 40)/420));
+  // Allow space release jump: detect keyup event by tracking keys['Space'] removed - handled above since runKey becomes false
+  // For gamepad: if gpRight is true we set runningHold; when gpRight becomes false, jump once
+  // Simpler: manage gpLastRight
+  if (gp){
+    if (gp.dRight){
+      // started holding -> if first time, set canJump true
+      if (!player._gpRightPrev) player.canJump = true;
+      player.runningHold = true;
+    } else {
+      if (player._gpRightPrev && player.canJump && player.grounded){
+        doPlayerJump();
+      }
+      player.runningHold = false;
+      player.canJump = false;
+    }
+    player._gpRightPrev = gp.dRight;
+  }
 
-  // Collision with obstacles
-  for (let ob of obstacles){
-    const blox = {x: ob.x, y: ob.y, w: ob.w, h: ob.h};
-    const ply = {x: player.x, y: player.y, w: player.w, h: player.h};
-    if (rectsOverlap(blox, ply)){
-      // collision — knock player backward and slow speed, add penalty to mirror approach
-      // If the player was dashing, they may break through some obstacles
-      if (player.dashTime > 0 && ob.w < 80){
-        // break obstacle
-        ob.h = Math.max(12, ob.h - 20);
-        // spawn bits (not implemented)
+  // Flashlight energy drain/recharge
+  if (player.flashlightHold && player.flashlightEnergy > 0){
+    player.flashlightOn = true;
+    player.flashlightEnergy = Math.max(0, player.flashlightEnergy - dt * FLASHLIGHT_DRAIN);
+  } else {
+    player.flashlightOn = false;
+    player.flashlightEnergy = Math.min(1, player.flashlightEnergy + dt * FLASHLIGHT_RECHARGE);
+  }
+}
+
+/* ---------- Monster behaviors ---------- */
+function updateMonsters(dt){
+  // When flashlight ON -> monsters slow; when OFF -> monsters speed up
+  const flashOn = player.flashlightOn;
+  for (let m of monsters){
+    if (!m.alive) continue;
+    // For chasers, increase x towards player
+    const targetX = player.x - 40; // target behind player's x
+    // Determine desired speed multiplier
+    let mult = flashOn ? MONSTER_SLOW_MULT : MONSTER_FAST_MULT;
+    // But scale with distance: if close, always aggressive
+    const dx = targetX - m.x;
+    let desired = m.baseSpeed * (flashOn ? 0.9 : 1.4);
+    // Apply multipliers for dramatic effect
+    desired *= (flashOn ? 0.8 : 1.0);
+    // If flashlight off, speed increases more based on level
+    if (!flashOn) desired *= (1 + 0.06 * level);
+    // Lerp speed for smoothness
+    m.speed += (desired - m.speed) * Math.min(1, dt * 2.0);
+    // Move forwards (positive x) as chaser advances toward player.x
+    m.x += m.speed * dt * 80 * (flashOn ? 0.6 : 1.8);
+    // If a monster reaches player's x -> caught
+    if (m.x + m.w >= player.x - 6){
+      // caught
+      triggerJumpscare(m);
+      return; // stop updating
+    }
+  }
+}
+
+/* ---------- World movement & spawning ---------- */
+function updateWorld(dt){
+  // world scroll speed scales with runningHold and base worldSpeed
+  // If player holds runningHold -> speed is higher (they're running). If not holding, still move (auto run) but less
+  const hold = player.runningHold;
+  const runMultiplier = hold ? 1.55 : 1.0;
+  const effectiveScroll = worldSpeed * runMultiplier;
+  scroll += effectiveScroll * dt * 60;
+
+  // move obstacles/mirrors/monsters left relative to player by decreasing their x by scroll * dt step (we're using world coordinates)
+  // But we created them in world coordinates; as player moves, we don't need to shift them here. Instead we spawn ahead over time.
+
+  // spawn obstacles periodically
+  spawnTimer += dt * 1000;
+  if (spawnTimer > OBSTACLE_INTERVAL * Math.max(0.6, 1 - (level-1)*0.02)){
+    spawnTimer = 0;
+    spawnObstacleAt(player.x + W + rand(300, 800));
+    if (Math.random() < 0.25) spawnGroundMonsterAt(player.x + W + rand(500, 1100));
+  }
+
+  // spawn mirrors less frequently - interval reduces with level
+  mirrorSpawnTimer += dt * 1000;
+  const mirrorInterval = Math.max(MIN_MIRROR_INTERVAL, MIRROR_INTERVAL_BASE - level*30);
+  if (mirrorSpawnTimer > mirrorInterval){
+    mirrorSpawnTimer = 0;
+    spawnMirrorAt(player.x + W + rand(400, 1000));
+  }
+
+  // spawn chasing monsters behind periodically
+  // give a chance based on level; monsters spawn slightly behind player's x
+  if (Math.random() < 0.006 + level*0.002){
+    spawnMonsterBehind(-rand(240, 1200));
+  }
+}
+
+/* ---------- Check collisions & interactions ---------- */
+function checkCollisions(){
+  // Translate world coordinates of obstacles/mirrors/monsters relative to player x by subtracting scroll
+  // For simplicity we treat obstacles and mirrors as absolute x positions in world coordinates; to check if they overlap player's screen position,
+  // we compare their x - scroll (or simply keep them in reference to player and move them left each frame).
+  // To simplify, we will shift all world objects left each frame by scrollDelta caused by player's forward motion (so their x is screen x).
+  // That approach is simpler: when we spawn, we spawn objects at x = W + offset; then each frame we reduce their x by effectiveScroll * dt * 60.
+  // Therefore adjust spawn functions above to have screen-based x; easier: adjust now: treat objects' x as screen coords and move them left.
+
+  // Move obstacles/mirrors/ground-monsters left by the same effectiveScroll we used above
+  const hold = player.runningHold;
+  const runMultiplier = hold ? 1.55 : 1.0;
+  const effectiveScroll = worldSpeed * runMultiplier;
+  const scrollDelta = effectiveScroll * Math.min(0.04, 1/60); // approximate per frame advance scaled by dt will be applied in update()
+  // Instead of using scrollDelta, we'll pass dt into updateWorld and earlier logic ensures spawn coordinates are screen-based.
+
+  // Move objects left by effectiveScroll * dt * 60 factor in update() where dt passed
+
+  // Check obstacle collisions with player (must be jumped over)
+  for (let i=obstacles.length-1;i>=0;i--){
+    const ob = obstacles[i];
+    // if on screen and overlaps player's rect -> collision
+    if (rectsOverlap({x:ob.x, y:ob.y, w:ob.w, h:ob.h}, {x:player.x, y:player.y, w:player.w, h:player.h})){
+      // If player in the air (jumping) and clear over obstacle top -> pass through (only if player's feet above obstacle top)
+      if (!player.grounded && (player.y + player.h) < (ob.y + 6)){
+        // cleared
       } else {
-        // penalty: reduce player's dash and push mirror closer (makes things scarier)
-        player.vy = -6; // small knockback jump
+        // caught/hit -> small knockback or immediate failure? We'll penalize by moving mirror closer and small bounce
+        player.vy = -8;
         player.grounded = false;
-        mirror.x += 10;
-        score = Math.max(0, score - 18);
+        // nudge nearest monster closer (increase its x) to punish
+        if (monsters.length > 0){
+          const nearest = monsters.reduce((a,b)=> (a.x > b.x ? a : b)); // closest to player
+          nearest.x += 60;
+        }
+        // remove obstacle to avoid repeated collisions
+        obstacles.splice(i,1);
       }
     }
   }
 
-  // Pickup collisions
-  for (let i=pickups.length-1;i>=0;i--){
-    const p = pickups[i];
-    const ply = {x: player.x, y: player.y, w: player.w, h: player.h};
-    const pr = {x: p.x - p.r, y: p.y - p.r, w: p.r*2, h: p.r*2};
-    if (rectsOverlap(ply, pr)){
-      if (p.kind === 'score') score += 120;
-      else if (p.kind === 'boost'){ player.dashCooldown = 0; player.dashTime = 0.5; player.flashlightCharge = Math.min(1, player.flashlightCharge + 0.35); }
-      pickups.splice(i,1);
+  // Mirrors: if player overlaps mirror area while airborne (y < baseY - 6) then pass through
+  for (let i=mirrors.length-1;i>=0;i--){
+    const m = mirrors[i];
+    if (!m.active) continue;
+    if (rectsOverlap({x:m.x, y:m.y, w:m.w, h:m.h}, {x:player.x, y:player.y, w:player.w, h:player.h})){
+      // If trick mirror -> fall
+      if (m.trick){
+        // cause fail by dropping into pit (immediate fail for simplicity)
+        // show a short 'fall' then restart at checkpoint (no level increase)
+        triggerTrickFall(m);
+        return;
+      } else {
+        // success: checkpoint -> advance level and save
+        m.active = false;
+        level++;
+        localStorage.setItem('mirrorfall.level', String(level));
+        uiLevel.textContent = 'Level: ' + level;
+        // slightly increase world speed and difficulty
+        worldSpeed = BASE_SCROLL * Math.pow(LEVEL_INTENSIFY, level-1);
+        // play checkpoint effects (score boost)
+        score += 600 + level*80;
+        // clear some world clutter and give short invulnerability while resetting
+        obstacles = obstacles.filter(o=> o.x - player.x > 40);
+        monsters = monsters.filter(mm=> mm.x < player.x - 800); // push away some
+        // spawn a wave of mirrors & obstacles
+        for (let k=0;k<3;k++) spawnMirrorAt(player.x + W + k*500 + rand(-60,60));
+        return;
+      }
     }
   }
 
-  // Flashlight usage
-  // Allow left touch hold for flashlight. For simplicity: if left touch is held >0.4s AND not just tapped, treat as flashlight
-  useFlashlight(dt);
-
-  // Frequent small increase of mirror closeness if player is slow
-  if (player.dashTime <= 0 && player.grounded && Math.abs(player.vy) < 0.1){
-    // nothing
+  // Monsters & player collision (if any monster's x overlaps player.x -> caught)
+  for (let m of monsters){
+    if (!m.alive) continue;
+    if (rectsOverlap({x:m.x, y:m.y, w:m.w, h:m.h}, {x:player.x, y:player.y, w:player.w, h:player.h})){
+      triggerJumpscare(m);
+      return;
+    }
   }
-
-  // Mirror catching check
-  if (mirror.x + 40 >= player.x - 6){
-    // Jumpscare / game over
-    gameOver(true);
-    return;
-  }
-
-  // Spawn
-  maybeSpawn(dt);
 }
 
-/* ---------- Draw ---------- */
-function drawHUD(){
-  // flashlight bar
-  const barW = 140, barH = 10;
-  ctx.save();
-  ctx.translate(12,12);
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.fillRect(0,0,barW,barH);
-  ctx.fillStyle = '#ffd54f';
-  ctx.fillRect(0,0, barW * player.flashlightCharge, barH);
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.strokeRect(0,0,barW,barH);
-  ctx.fillStyle = '#fff';
-  ctx.font = '12px system-ui';
-  ctx.fillText('Flashlight', 0, -6);
-  ctx.restore();
+/* ---------- Jumpscare & Trick fall ---------- */
+let jumpscareActive = false;
+function triggerJumpscare(monster){
+  if (jumpscareActive) return;
+  jumpscareActive = true;
+  running = false;
+  // show overlay, big flash, drag down animation simulated
+  jumpscareOverlay.style.display = 'flex';
+  jumpscareOverlay.style.background = '#000';
+  document.getElementById('jumpscareMsg').textContent = 'THE MIRROR CAUGHT YOU';
+  // animate briefly then reset to last checkpoint
+  setTimeout(()=>{
+    // simulate drag down by fading overlay and then reset
+    jumpscareOverlay.style.display = 'none';
+    jumpscareActive = false;
+    respawnAtCheckpoint();
+  }, 1500);
 }
 
+function triggerTrickFall(mirrorObj){
+  // trick mirror activated -> show a short 'fall' and restart at checkpoint
+  running = false;
+  jumpscareActive = true;
+  jumpscareOverlay.style.display = 'flex';
+  document.getElementById('jumpscareMsg').textContent = 'THE MIRROR WAS FAKE — YOU FELL';
+  setTimeout(()=>{
+    jumpscareOverlay.style.display = 'none';
+    jumpscareActive = false;
+    respawnAtCheckpoint();
+  }, 1200);
+}
+
+/* ---------- Respawn at last checkpoint ---------- */
+function respawnAtCheckpoint(){
+  // reload level from storage
+  level = Number(localStorage.getItem('mirrorfall.level') || 1);
+  uiLevel.textContent = 'Level: ' + level;
+  // reset player position and world
+  player.x = 180;
+  player.y = player.baseY;
+  player.vy = 0;
+  player.grounded = true;
+  player.runningHold = false;
+  player.flashlightHold = false;
+  player.flashlightOn = false;
+  player.flashlightEnergy = 1.0;
+  // clear world and spawn fresh elements appropriate to level
+  obstacles = [];
+  mirrors = [];
+  monsters = [];
+  spawnTimer = 0;
+  mirrorSpawnTimer = 0;
+  worldSpeed = BASE_SCROLL * Math.pow(LEVEL_INTENSIFY, level-1);
+  for (let i=1;i<=6;i++){
+    spawnObstacleAt(W + i*rand(300,700));
+    if (Math.random() < 0.3) spawnGroundMonsterAt(W + i*rand(600,1200));
+  }
+  // small delay before re-running
+  setTimeout(()=>{ running = true; lastTS = performance.now(); requestAnimationFrame(loop); }, 300);
+}
+
+/* ---------- Rendering ---------- */
 function drawScene(){
   // clear
-  ctx.fillStyle = '#030306';
+  ctx.fillStyle = '#000';
   ctx.fillRect(0,0,W,H);
 
-  // parallax background (dark shapes)
-  // draw faint tilted ground grid
-  ctx.save();
-  for (let i=0;i<12;i++){
-    ctx.fillStyle = `rgba(255,255,255,${0.01 + i*0.01})`;
-    ctx.fillRect((i*120 + (timeElapsed*8 % 120)) % (W+200) - 100, H-110, 80, 2);
-  }
-  ctx.restore();
+  // faint background shapes/gradient
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#03030a');
+  grad.addColorStop(1,'#05050a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
 
   // ground
-  ctx.fillStyle = '#0b0b0d';
+  ctx.fillStyle = '#020204';
   ctx.fillRect(0, H-120, W, 120);
 
-  // obstacles
+  // Draw obstacles
   for (let ob of obstacles){
-    ctx.fillStyle = '#2b2b33';
+    // skip if off-screen
+    if (ob.x + ob.w < -200) continue;
+    ctx.fillStyle = '#22222a';
     ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
-    // highlight edge
-    ctx.strokeStyle = '#101019';
+    ctx.strokeStyle = '#101014';
     ctx.strokeRect(ob.x, ob.y, ob.w, ob.h);
   }
 
-  // pickups
-  for (let p of pickups){
-    if (p.kind === 'score'){
-      ctx.fillStyle = '#8ef';
+  // Draw mirrors (gates) — mostly invisible unless in flashlight cone; but should have faint edge in darkness (like glass)
+  for (let m of mirrors){
+    if (!m.active) continue;
+    // draw thin frame
+    ctx.save();
+    // base faint frame so player might glimpse it near edge of flashlight
+    ctx.strokeStyle = m.trick ? 'rgba(200,80,80,0.04)' : 'rgba(150,180,255,0.06)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(m.x, m.y, m.w, m.h);
+    ctx.restore();
+  }
+
+  // Draw monsters: eyes glow visible even in dark
+  for (let m of monsters){
+    // only draw the silhouette faint if in flashlight cone, otherwise only eyes
+    const inCone = isInFlashCone(m.x + m.w/2, m.y + 20);
+    if (inCone){
+      ctx.fillStyle = 'rgba(20,20,28,0.9)';
+      ctx.fillRect(m.x, m.y, m.w, m.h);
+      // head
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.arc(m.x + m.w/2, m.y - 10, 14, 0, Math.PI*2);
       ctx.fill();
     } else {
-      ctx.fillStyle = '#ff9';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fill();
+      // dark silhouette (almost invisible)
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(m.x, m.y, m.w, m.h);
     }
+    // eyes always visible as two yellow dots — unless flashlight very bright (then eyes get white)
+    const eyeColor = player.flashlightOn && isInFlashCone(m.x + m.w/2, m.y + 20) ? 'rgba(255,255,200,1)' : `rgba(255,${Math.floor(200 * m.eyesAlpha)},50,${m.eyesAlpha})`;
+    ctx.fillStyle = eyeColor;
+    ctx.fillRect(m.x + 6, m.y - 12, 6, 4);
+    ctx.fillRect(m.x + 16, m.y - 12, 6, 4);
   }
 
-  // heartbeat/fog effects for horror mood
-  const fogAlpha = 0.08 + 0.05*Math.sin(timeElapsed*2.2);
-  ctx.fillStyle = 'rgba(4,4,6,'+fogAlpha+')';
-  ctx.fillRect(0,0,W,H-60);
+  // Draw player (stick-ish)
+  ctx.save();
+  // small halo if flashlight on
+  if (player.flashlightOn) ctx.shadowColor = 'rgba(255,240,200,0.08)', ctx.shadowBlur = 8;
+  ctx.fillStyle = '#e6e8ea';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.beginPath();
+  ctx.arc(player.x + player.w/2, player.y - 10, 12, 0, Math.PI*2);
+  ctx.fill();
+  // flashlight in player's hand (dark handle)
+  ctx.fillStyle = '#191919';
+  ctx.fillRect(player.x + player.w, player.y + player.h/3, 16, 7);
+  ctx.restore();
 
-  // flashlight cone: draw radial gradient in front of player
-  if (player.flashlightCharge > 0 || player.flashlightActive){
-    const g = ctx.createRadialGradient(player.x + 12, player.y + 12, 10, player.x + 360, player.y - 120, 420);
-    g.addColorStop(0, 'rgba(255,255,200,0.95)');
-    g.addColorStop(0.2, 'rgba(255,255,200,0.22)');
-    g.addColorStop(0.6, 'rgba(20,20,24,0.04)');
+  // Flashlight cone: we render a dark mask over screen then cut a cone of light where the flashlight is.
+  drawFlashlightMask();
+
+  // HUD: flashlight bar & score
+  drawHUD();
+}
+
+/* ---------- Flashlight rendering: mask + cone ---------- */
+function isInFlashCone(worldX, worldY){
+  // Statement in screen coordinates: check whether point is within cone ellipse in front of player
+  // We'll approximate cone as an ellipse centered ahead of player
+  const cx = player.x + 260;
+  const cy = player.y - 80;
+  const rx = 420; const ry = 240;
+  const dx = worldX - cx; const dy = worldY - cy;
+  return (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry) < 1.0;
+}
+
+function drawFlashlightMask(){
+  // Draw full-screen darkness
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.94)';
+  ctx.fillRect(0,0,W,H);
+  // If flashlight is active or has energy > small threshold, cut cone
+  if (player.flashlightOn || player.flashlightEnergy > 0.06){
+    // Create radial-ish gradient cone
+    const cx = player.x + 60;
+    const cy = player.y + 10;
+    const g = ctx.createRadialGradient(cx, cy, 8, cx + 300, cy - 140, 480);
+    g.addColorStop(0, `rgba(255,250,220,0.98)`);
+    g.addColorStop(0.12, `rgba(255,250,220,0.42)`);
+    g.addColorStop(0.35, `rgba(40,44,50,0.12)`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = 'destination-out';
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(player.x + 260, player.y - 80, 420, 240, -0.18, 0, Math.PI*2);
+    // big ellipse cone area
+    ctx.ellipse(cx + 260, cy - 80, 420, 240, -0.18, 0, Math.PI*2);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
-  }
-
-  // player draw (simple stickman)
-  ctx.save();
-  // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.fillRect(player.x - 4, player.y + player.h + 4, player.w + 8, 6);
-
-  // body
-  ctx.fillStyle = '#dfe2e6';
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  // head
-  ctx.beginPath();
-  ctx.fillStyle = '#fff';
-  ctx.arc(player.x + player.w/2, player.y - 10, 14, 0, Math.PI*2);
-  ctx.fill();
-
-  // flashlight handle
-  ctx.fillStyle = '#202020';
-  ctx.fillRect(player.x + player.w, player.y + player.h/3, 18, 8);
-  ctx.restore();
-
-  // mirror (pursuer) - partly transparent with red eyes
-  ctx.save();
-  const mirrorScreenX = mirror.x;
-  const mirrorAlpha = 0.5 + mirror.anger*0.5;
-  ctx.globalAlpha = mirrorAlpha;
-  ctx.fillStyle = '#111027';
-  ctx.fillRect(mirrorScreenX, player.baseY, player.w, player.h);
-  // head
-  ctx.beginPath();
-  ctx.fillStyle = '#0b0b0b';
-  ctx.arc(mirrorScreenX + player.w/2, player.baseY - 10, 14, 0, Math.PI*2);
-  ctx.fill();
-  // eyes (red)
-  ctx.fillStyle = `rgba(255,${Math.floor(60 + mirror.anger*195)},60)`;
-  ctx.fillRect(mirrorScreenX + 6, player.baseY - 14, 6, 4);
-  ctx.fillRect(mirrorScreenX + 16, player.baseY - 14, 6, 4);
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // small UI
-  drawHUD();
-
-  // Remainder: screen vignette for mood
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(0.8, 'rgba(0,0,0,0.25)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,W,H);
-}
-
-/* ---------- Gameover / Jumpscare ---------- */
-function gameOver(isCaught){
-  running = false;
-  if (isCaught){
-    // show jumpscare full-screen flash with sound
-    jumpscareEl.style.display = 'flex';
-    setTimeout(()=>{ jumpscareEl.style.display = 'none'; showOverlayEnd(); }, 1800);
-    // optional sound
+    // slight additive light overlay for ambience
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(24,28,32,0.06)';
+    ctx.beginPath();
+    ctx.ellipse(cx + 260, cy - 80, 420, 240, -0.18, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
   } else {
-    showOverlayEnd();
+    // no cone, keep it very dark (only eyes visible)
   }
+  ctx.restore();
 }
 
-function showOverlayEnd(){
-  overlay.style.display = 'flex';
-  const panel = document.getElementById('panel');
-  panel.innerHTML = `
-    <h1>MirrorFall</h1>
-    <p style="margin:6px 0 0 0">Run ended. Score: <strong>${score}</strong></p>
-    <p style="font-size:13px;opacity:0.9;margin-top:8px">The mirror learns each run. Try again — it remembers.</p>
-    <div style="margin-top:12px">
-      <button id="startBtn2">Try Again</button>
-      <button id="shareBtn" style="margin-left:8px;background:#444;padding:8px 12px;border-radius:8px;border:0;color:#fff">Share</button>
-    </div>
-  `;
-  document.getElementById('startBtn2').onclick = ()=>{ panel.innerHTML = ''; panel.appendChild(startBtn); overlay.style.display='none'; startGame(); };
-  document.getElementById('shareBtn').onclick = ()=>{ try{ navigator.share ? navigator.share({title:'MirrorFall Score', text:'I scored '+score+' in MirrorFall!'}) : alert('Share this score: '+score); }catch(e){ alert('Share not supported on this device.'); } };
+/* ---------- HUD ---------- */
+function drawHUD(){
+  // Score
+  uiScore.textContent = 'Score: ' + Math.floor(score);
+  // Flashlight energy bar
+  ctx.save();
+  ctx.translate(12,12);
+  const barW = 160, barH = 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0,0,barW,barH);
+  ctx.fillStyle = '#ffd95a';
+  ctx.fillRect(0,0, barW * player.flashlightEnergy, barH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.strokeRect(0,0,barW,barH);
+  ctx.fillStyle = '#fff'; ctx.font = '12px system-ui'; ctx.fillText('Flashlight', 0, -6);
+  ctx.restore();
+
+  // Level text is in DOM
+}
+
+/* ---------- Main update loop ---------- */
+function update(dt){
+  if (!running || paused) return;
+
+  // 1) Input & flashlight
+  updateFlashlight(dt);
+
+  // 2) movement & physics
+  // If player is holding run, horizontal speed is higher; otherwise he is slower but still moving forward via world objects spawn logic
+  // Jump release detection handled by input handlers; but ensure we allow jump only once per hold
+  if (player.runningHold) player.canJump = true;
+
+  applyPhysics(dt);
+
+  // 3) Move world objects left by scroll amount computed from worldSpeed and run hold
+  const runMultiplier = player.runningHold ? 1.55 : 1.0;
+  const effectiveScroll = worldSpeed * runMultiplier;
+  const moveX = effectiveScroll * dt * 60; // pixel shift per frame
+  // Move obstacles/mirrors/monsters left
+  for (let ob of obstacles) ob.x -= moveX;
+  for (let m of mirrors) m.x -= moveX;
+  for (let mo of monsters) mo.x -= moveX * 0.6; // monsters move independently in updateMonsters but also shift slightly for world motion
+
+  // 4) Update monsters (chasing logic)
+  updateMonsters(dt);
+  // 5) Spawn & world generation
+  updateWorld(dt);
+
+  // 6) Collisions & interactions
+  checkCollisions();
+
+  // 7) Remove off-screen garbage
+  obstacles = obstacles.filter(o => o.x + o.w > -200);
+  mirrors = mirrors.filter(m => m.x + m.w > -200);
+  monsters = monsters.filter(m => m.x + m.w > -1000 && m.x < W + 1200); // keep some offscreen to chase
+
+  // 8) Score & difficulty increase
+  score += dt * 32 * (player.runningHold ? 1.6 : 1.0);
 }
 
 /* ---------- Main loop ---------- */
 function loop(ts){
-  if (!lastTimestamp) lastTimestamp = ts;
-  const dt = Math.min(0.033, (ts - lastTimestamp) / 1000); // clamp dt
-  lastTimestamp = ts;
+  if (!lastTS) lastTS = ts;
+  const dt = Math.min(0.033, (ts - lastTS)/1000);
+  lastTS = ts;
 
   if (running && !paused){
     update(dt);
     drawScene();
     requestAnimationFrame(loop);
   } else {
-    // If paused, still draw once
-    if (running) drawScene();
+    // draw at least once for paused screen
+    drawScene();
+    if (running) requestAnimationFrame(loop);
   }
 }
 
-/* ---------- Initial placement ---------- */
-player.x = 180;
-player.y = H - 120 - player.h;
-player.baseY = player.y;
+/* ---------- Start button ---------- */
+startBtn.onclick = ()=>{
+  // show the epilepsy/jumpscare warning accepted; start game
+  startGame();
+};
 
-/* ---------- Simple autoplay demo if user doesn't start (not running) ---------- */
-// optional: show ambient animation
-(function ambientAnim(){
-  let t0 = performance.now();
-  function anim(ts){
-    const dt = (ts - t0)/1000;
-    t0 = ts;
-    // slow simple animate mirror left-right if idle
-    if (!running){
-      // tiny breathing background
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0,0,W,H);
-      // draw faint title
-      ctx.fillStyle = '#fff';
-      ctx.font = '48px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('MirrorFall', W/2, H/2 - 60);
-    }
-    requestAnimationFrame(anim);
-  }
-  requestAnimationFrame(anim);
-})();
-
-/* ---------- Portrait warning helper ---------- */
+/* ---------- Orientation check ---------- */
 function checkOrientation(){
-  const portraitWarning = document.getElementById('portraitWarning');
-  if (window.innerHeight > window.innerWidth) {
-    portraitWarning.style.display = 'flex';
-  } else portraitWarning.style.display = 'none';
+  const port = document.getElementById('portraitWarning');
+  if (window.innerHeight > window.innerWidth) port.style.display = 'flex'; else port.style.display = 'none';
 }
 window.addEventListener('resize', checkOrientation);
 checkOrientation();
 
-/* ---------- Initialize audio placeholders (add your files) ---------- */
-/* Example audio usage:
-const sJump = new Audio('sfx/jump.wav');
-sJump.volume = 0.5;
-sJump.play();
-*/
-// We'll not forceplay audio to avoid autoplay blocking.
+/* ---------- Keyboard behavior specialized for run/release-to-jump ---------- */
+// We'll track space key changes to convert hold -> release jump
+let spacePrev = false;
+function pollKeyReleaseJump(){
+  const space = keys['Space'] || keys['ArrowRight'] || keys['KeyD'];
+  if (space && !spacePrev){
+    // started holding run
+    player.runningHold = true;
+    player.canJump = true;
+  }
+  if (!space && spacePrev){
+    // released => attempt jump once
+    if (player.canJump && player.grounded) doPlayerJump();
+    player.runningHold = false;
+    player.canJump = false;
+  }
+  spacePrev = space;
+  // Also map 'KeyF' to flashlight hold state (key down)
+  if (keys['KeyF']) player.flashlightHold = true;
+  else if (!leftTouchTouched) player.flashlightHold = false; // leftTouchTouched managed by touch handlers
+}
 
-/* ---------- End of file ---------- */
+/* ---------- Touch bookkeeping for mixing with keyboard ---------- */
+let leftTouchTouched = false;
+leftTouch.addEventListener('touchstart', ()=>{ leftTouchTouched = true; });
+leftTouch.addEventListener('touchend', ()=>{ leftTouchTouched = false; });
+
+/* ---------- Frame poll function to integrate key release logic and gamepad inputs ---------- */
+(function poller(){
+  // poll keyboard release->jump mapping
+  pollKeyReleaseJump();
+  // poll gamepad for flash/run quick mapping for non-touch users
+  const gp = pollGamepad();
+  if (gp){
+    // dLeft => flashlight
+    if (gp.dLeft) player.flashlightHold = true; else if (!leftTouchTouched && !keys['KeyF']) player.flashlightHold = false;
+    // dRight => run hold / release-to-jump handled inside updateFlashlight() via gp prev
+    // Also allow A button (gp.a) to be jump shortcut if want
+    if (gp.a && player.grounded) doPlayerJump();
+  }
+  requestAnimationFrame(poller);
+})();
+
+/* ---------- Kick off idle animation until start ---------- */
+(function idleAnim(){
+  if (!running){
+    // draw simple idle screen
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#fff';
+    ctx.font = '48px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('MirrorFall', W/2, H/2 - 60);
+    ctx.font = '16px system-ui';
+    ctx.fillText('Hold left to flashlight. Hold right to run (release to jump).', W/2, H/2 - 28);
+  }
+  requestAnimationFrame(idleAnim);
+})();
+
+/* ---------- Initialize some world content for first run ---------- */
+for (let i=1;i<=6;i++){
+  spawnObstacleAt(W + i*rand(300,700));
+  if (Math.random() < 0.25) spawnGroundMonsterAt(W + i*rand(600,1200));
+}
+for (let i=1;i<=3;i++) spawnMirrorAt(W + i*(MIRROR_INTERVAL_BASE - level*30));
+
+/* ---------- Small note: make sure overlay start button shows saved level ---------- */
+document.addEventListener('DOMContentLoaded', ()=>{ uiLevel.textContent = 'Level: ' + level; });
+
 </script>
-
 </body>
 </html>
